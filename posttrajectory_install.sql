@@ -1863,5 +1863,5 @@ BEGIN
 	RETURN tpoint_to_Linestring;
 END
 $$
-LANGUAGE 'plpgsql'
+LANGUAGE 'plpgsql';
 
