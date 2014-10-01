@@ -1,4 +1,4 @@
-﻿delete from trajectory_columns;
+delete from trajectory_columns;
 
 drop table mpseq_84919_traj;
 
@@ -23,6 +23,9 @@ create table taxi(
 	taxi_driver varchar
 );
 
+-- 컬럼 추가
+select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
+
 select * from taxi;
 delete from taxi;
 
@@ -42,8 +45,7 @@ insert into taxi values(9, '57누2009', '소나타YF', 'hongkd7');
 insert into taxi values(10, '57누2010', '소나타YF', 'hongkd7');
 
 
--- 컬럼 추가
-select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
+
 
 
 select * from taxi;
@@ -236,6 +238,66 @@ update taxi set traj = modify(traj, TIMESTAMP '2010-01-26 15:00:40+9', TIMESTAMP
 				     (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:02:40+9') ),
 				     (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:03:40+9') ) ]::tpoint[] )
 	where taxi_id = 1;
+
+
+
+
+
+
+-- 인터섹션 사용 예
+select astext(	( select st_intersection( 
+						( select geometryfromtext('LINESTRING(20 130, 80 170, 170 190, 140 70, 190 80, 210 140, 230 80, 210 90, 270 160, 350 120)' ) ) ,
+						( select st_geometry('BOX(130 50, 300 220)'::box2d ) 
+					     ) 
+					  ) 
+				  ) );
+
+
+-- 인터섹션후 첫번째 라인스트링을 가져오기 select astext( select st_geometryn ( st_intersection ( geometry, geometry ) ) );
+select astext( ( select st_geometryn( ( select st_intersection( 
+						( select geometryfromtext('LINESTRING(20 130, 80 170, 170 190, 140 70, 190 80, 210 140, 230 80, 210 90, 270 160, 350 120)' ) ) ,
+						( select st_geometry('BOX(130 50, 300 220)'::box2d ) 
+					     ) 
+					  ) 
+				  ) , 1)
+			  ) );
+
+
+-- geometry의 갯수를 가져오기
+select st_numgeometries(	( select st_intersection( 
+						( select geometryfromtext('LINESTRING(20 130, 80 170, 170 190, 140 70, 190 80, 210 140, 230 80, 210 90, 270 160, 350 120)' ) ) ,
+						( select st_geometry('BOX(130 50, 300 220)'::box2d ) 
+					     ) 
+					  ) 
+				  ) );
+
+
+
+
+// slice 고칠것 	
+//select slice('member', TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00');
+
+// 다음 처럼 되게 고칠것
+select slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+from taxi;
+
+select name
+from student;
+
+select stay(traj, 'LINESTRING(15000 18000, 30000 30000)') 
+from taxi;
+
+
+select slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), stay(traj, 'LINESTRING(15000 18000, 30000 30000)')
+from taxi;
+
+
+select aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) 
+from taxi;
+
+select slice( traj, st_geometry('BOX(17 6, 29 31)'::box2d) ),  aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) )
+from taxi;
+
 
 
 
