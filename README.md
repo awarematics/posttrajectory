@@ -2,7 +2,7 @@ PostTrajectory Project
 ==============
 
 
-# Creation Trajectory Table
+## Creation Trajectory Table
 
 <pre>
 create table taxi(
@@ -13,13 +13,13 @@ create table taxi(
 );
 </pre>
 
-# Adding Trajectory Column
+## Adding Trajectory Column
 
 <pre>
 select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
 </pre>
 
-# Insert an Moving Object
+## Insert an Moving Object
 
 <pre>
 insert into taxi values(1, '57NU2001', 'Optima', 'hongkd7');
@@ -29,7 +29,7 @@ insert into taxi values(4, '57NU2004', 'SonataYF', 'hongkd7');
 insert into taxi values(5, '57NU2005', 'Optima', 'hongkd7');
 </pre>
 
-# Append GPS or a Trajectory Point in a Moving Object
+## Append GPS or a Trajectory Point in a Moving Object
 <pre>
 UPDATE taxi 
 SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
@@ -37,12 +37,12 @@ WHERE  taxi_id = 1;
 </pre>
 
 
-# View All Moving Objects
+## View All Moving Objects
 <pre>
 select * from taxi;
 </pre>
 
-# Append GPS Stream or a Trajectort in a Moving Object
+## Append GPS Stream or a Trajectort in a Moving Object
 <pre>
 -- append(trajcetory, tpoint[]) 테스트 4개만 추가
 update taxi set traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
@@ -52,7 +52,7 @@ update taxi set traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTA
 		where taxi_id = 1;
 </pre>
 
-# Remove GPS Stream or Partial Trajectory in a Moving Object
+## Remove GPS Stream or Partial Trajectory in a Moving Object
 <pre>
 -- reomve 테스트 
 --3번째 row의 값 5개 삭제
@@ -66,7 +66,7 @@ update taxi set traj = remove(traj, TIMESTAMP '2010-01-26 12:18:40+09', TIMESTAM
 </pre>
 
 
-# Update GPS Stream or Partial Trajectory in a Moving Object
+## Update GPS Stream or Partial Trajectory in a Moving Object
 <pre>
 --modify 테스트
 update taxi set traj = modify(traj, tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9'))
@@ -108,25 +108,25 @@ update taxi set traj = modify(traj, TIMESTAMP '2010-01-26 15:00:40+9', TIMESTAMP
 </pre>
 
 
-# Slicing Trjactories
+## Slicing Trjactories
 <pre>
 select slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 from taxi;
 </pre>
 
-# Spatial Slicing 
+## Spatial Slicing 
 <pre>
 select stay(traj, 'LINESTRING(15000 18000, 30000 30000)') 
 from taxi;
 </pre>
 
-# Spatial Slicing and Temporal Slicing
+## Spatial Slicing and Temporal Slicing
 <pre>
 select slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), stay(traj, 'LINESTRING(15000 18000, 30000 30000)')
 from taxi;
 </pre>
 
-# Enter Function and Predicates
+## Enter Function and Predicates
 <pre>
 select aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) 
 from taxi;
