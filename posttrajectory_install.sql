@@ -1,4 +1,4 @@
-﻿CREATE  TYPE tpoint as(
+CREATE TYPE tpoint as(
 	p	geometry,
 	ptime	timestamp with time zone
 );
@@ -65,7 +65,7 @@ BEGIN
 
 END
 $$
-LANGUAGE 'plpgsql'
+LANGUAGE 'plpgsql';
 
 
 
@@ -106,8 +106,7 @@ $delete_mpoint_seg$ LANGUAGE plpgsql;
 
 
 
-CREATE PROCEDURAL LANGUAGE 'plpythonu' HANDLER plpython_call_handler;
-
+CREATE PROCEDURAL LANGUAGE 'plpython3u' HANDLER plpython_call_handler;
 
 
 CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
@@ -138,7 +137,7 @@ CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
 	
 	return "MODIFY"
 	
-$$ LANGUAGE plpythonu;
+$$ LANGUAGE plpython3u;
 
 
 
@@ -500,6 +499,7 @@ END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE STRICT
   COST 100;
+  
 ALTER FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) OWNER TO postgres;
 COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) IS 
 					'args: schema_name, table_name, column_name, srid, type, dimentrion';
@@ -738,7 +738,7 @@ BEGIN
 	RETURN c_trajectory;
 END
 $$
-LANGUAGE 'plpgsql' 
+LANGUAGE 'plpgsql' ;
 
 
 
@@ -872,7 +872,7 @@ BEGIN
 	RETURN c_trajectory;
 END
 $$
-LANGUAGE 'plpgsql' 
+LANGUAGE 'plpgsql' ;
 
 
 
@@ -945,7 +945,7 @@ BEGIN
 
 END
 $$
-LANGUAGE 'plpgsql'
+LANGUAGE 'plpgsql';
 
 
 
@@ -975,7 +975,7 @@ BEGIN
 	RETURN c_trajectory;
 END
 $$
-LANGUAGE 'plpgsql'
+LANGUAGE 'plpgsql';
 
 
 
@@ -1185,7 +1185,7 @@ BEGIN
 	RETURN c_trajectory;
 END
 $$
-LANGUAGE 'plpgsql'
+LANGUAGE 'plpgsql';
 
 
 
@@ -1238,6 +1238,630 @@ BEGIN
 	RETURN new_tpseg;
 END
 $$
-LANGUAGE 'plpgsql'
+LANGUAGE 'plpgsql';
 
+
+
+CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory)
+  RETURNS tpoint[] AS
+$BODY$
+DECLARE
+	x1				alias for $1;
+	y1				alias for $2;
+	x2				alias for $3;
+	y2				alias for $4;
+	f_trajectory			alias for $5;
+	isIntersect_box2d		boolean;
+	isOverlap_point			boolean;
+	tpoint_MaxNumber		integer;
+	nowTpsegNumber			integer;
+	tpseg				tpoint[];
+	user_rect			box2d;
+	select_tpoint			tpoint;
+	return_data			text;
+
+	f_trajectory_segtable_name	text;
+	sql				text;
+	data				record;
+
+	return_value			tpoint[];
+BEGIN
+	
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| f_trajectory.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+
+
+	EXECUTE 'select st_makebox2d(st_point($1, $2), st_point($3, $4))'
+	into user_rect using x1, y1, x2, y2;
+	
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid;
+	FOR data IN EXECUTE sql LOOP
+		execute 'select st_box2d_intersects((select st_box2d($1)), $2)'
+		into isIntersect_box2d using data.rect, user_rect;
+		IF(isIntersect_box2d) THEN
+			tpseg := data.tpseg;
+			nowTpsegNumber := 1;
+			sql := 'select array_upper($1, 1)';
+			EXECUTE sql INTO tpoint_MaxNumber using tpseg;
+			WHILE tpoint_MaxNumber >= nowTpsegNumber LOOP
+				EXECUTE 'select st_box2d_overlap($1, (select st_box2d($2)))'
+				INTO isOverlap_point USING user_rect, tpseg[nowTpsegNumber].p;
+				IF(isOverlap_point) THEN
+					select_tpoint := tpseg[nowTpsegNumber];
+					--execute 'select st_astext($1)'
+					--into return_data using select_tpoint.p;
+					return_value := return_value || select_tpoint;
+
+				END IF;
+				nowTpsegNumber := nowTpsegNumber + 1;
+				
+			END LOOP;
+		END IF;
+	END LOOP;
+	return return_value;
+END
+
+
+
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE
+COST 100;
+  
+CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone AS
+$BODY$
+DECLARE
+	user_traj			alias for $1;
+
+	f_trajectory_segtable_name	text;
+	sql			text;
+
+	end_time		TIMESTAMP with time zone;
+
+	
+BEGIN	
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+
+	sql := 'select end_time from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid || ' and next_segid is null';
+	EXECUTE sql INTO end_time;
+
+	RETURN end_time;
+END
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE STRICT
+COST 100;
+
+--traj와 영역을 주면 해당 영역에 교차하는 tpoint가 있는 segment의 모든 tpoint를 리턴해준다.
+CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[] AS
+$$
+DECLARE
+	user_traj			alias for $1;
+	input_geometry			alias for $2;
+	f_trajectory_segtable_name	text;
+
+	sql				text;
+	data				record;
+	isIntersect			boolean;
+	intersect_tpseg			tpoint[];
+
+BEGIN
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+	
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
+	FOR data IN EXECUTE sql LOOP
+		sql := 'select st_intersects( $1 , $2 )';
+		EXECUTE sql INTO isIntersect USING data.rect, input_geometry;
+
+		IF(isIntersect) THEN
+			EXECUTE 'select array_cat( $1, $2)'
+			INTO intersect_tpseg USING intersect_tpseg, data.tpseg;
+		END IF;
+	END LOOP;
+
+	RETURN intersect_tpseg;
+END
+$$
+LANGUAGE 'plpgsql';
+
+--tpoint array를 주면 geometry[](포인트[])를 리턴해준다.
+CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[] AS
+$$
+DECLARE
+	input_tpoint	alias for $1;
+	return_value	geometry[];
+
+	sql_text		text;
+	array_size		int;
+	tpoint_data		tpoint;
+
+	i			int;
+
+BEGIN
+	sql_text := 'select array_upper( $1, 1)';
+	EXECUTE sql_text INTO array_size USING input_tpoint; 
+	i := 1;
+	WHILE array_size >= i LOOP
+		
+		EXECUTE 'select array_append($1, $2)'
+		INTO return_value USING return_value, input_tpoint[i].p;
+		i := i+1;
+	END LOOP;
+	
+	RETURN return_value;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- seg table의 rect 정보를 보기 위한 함수
+--drop function getRect_trajectory(trajectory) 
+
+CREATE OR REPLACE FUNCTION getRect_trajectory(trajectory) RETURNS setof box2d AS
+$$
+DECLARE
+	user_traj			alias for $1;
+	f_trajectory_segtable_name	text;
+	sql				text;
+	data				record;
+	rect				box2d;
+BEGIN
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+	
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
+	FOR data IN EXECUTE sql LOOP
+		execute 'select getbbox( $1 )'
+		into rect using data.rect;
+		return next rect;
+	END LOOP;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- Function: gettimestamp(integer)
+
+-- DROP FUNCTION gettimestamp(integer);
+
+CREATE OR REPLACE FUNCTION getStartTime(trajectory)
+  RETURNS timestamp without time zone AS
+$BODY$
+DECLARE
+	user_traj			alias for $1;
+
+	f_trajectory_segtable_name	text;
+	sql			text;
+
+	start_time		TIMESTAMP with time zone;
+
+	
+BEGIN	
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+
+	sql := 'select start_time from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid || ' and before_segid is null';
+	EXECUTE sql INTO start_time;
+
+	RETURN start_time;
+END
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE STRICT
+COST 100;
+
+CREATE OR REPLACE FUNCTION gettimestamp(integer)
+  RETURNS timestamp without time zone AS
+$BODY$
+DECLARE
+	input_interval		alias for $1;
+
+	base_time		TIMESTAMP with time zone;
+
+	data_time		TIMESTAMP with time zone;
+
+	text_interval		text;
+	
+BEGIN	
+	
+	base_time := '2011-01-01 12:00:00+9';
+	text_interval := input_interval || ' minute';
+
+	EXECUTE 'select TIMESTAMP ' || quote_literal(base_time)
+	INTO base_time;
+	
+
+	EXECUTE 'select TIMESTAMP ' || quote_literal(base_time)  || ' + interval ' || quote_literal(text_interval)
+	INTO data_time;
+
+	RETURN data_time;
+END
+$BODY$
+  LANGUAGE 'plpgsql' VOLATILE STRICT
+  COST 100;
+ALTER FUNCTION gettimestamp(integer) OWNER TO postgres;
+
+--mpseg 테이블의 tpseg정보를 텍스트로 보기위한 함수
+create or replace function getTpointArrayInfo(tpoint[]) returns setof text as
+$$
+declare
+	tpseg	alias for $1;
+
+	max_size	integer;
+	now_count	integer;
+	return_data	text;
+
+begin
+	execute 'select array_upper($1, 1)'
+	into max_size using tpseg;
+	now_count := 1;
+	while max_size >= now_count loop
+		execute 'select st_astext($1)'
+		into return_data using tpseg[now_count].p;
+		now_count := now_count + 1;
+		return next return_data;
+	end loop;
+end
+$$
+language 'plpgsql';
+
+CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[],  OUT tpoint text, OUT ptime_timestamp timestamp without time zone)
+  RETURNS SETOF record AS
+$BODY$
+declare
+	tpseg	alias for $1;
+
+	max_size	integer;
+	now_count	integer;
+	return_data	text;
+
+begin
+	execute 'select array_upper($1, 1)'
+	into max_size using tpseg;
+	now_count := 1;
+	while max_size >= now_count loop
+		execute 'select st_astext($1)'
+		into tpoint using tpseg[now_count].p;
+		ptime_timestamp := tpseg[now_count].ptime;
+
+		now_count := now_count+1;
+		return next;
+	end loop;
+
+	return;
+end
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE;
+
+CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[] AS
+$$
+DECLARE
+	user_traj			alias for $1;
+	input_geometry			alias for $2;
+	f_trajectory_segtable_name	text;
+
+	sql				text;
+	data				record;
+	isIntersect			boolean;
+	intersect_tpseg			tpoint[];
+	
+BEGIN
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+	
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
+	FOR data IN EXECUTE sql LOOP
+		sql := 'select st_intersects( $1 , $2 )';
+		EXECUTE sql INTO isIntersect USING data.rect, input_geometry;
+
+		IF(isIntersect) THEN
+			EXECUTE 'select array_cat( $1, $2)'
+			INTO intersect_tpseg USING intersect_tpseg, data.tpseg;
+		END IF;
+	END LOOP;
+
+	RETURN intersect_tpseg;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION aa_enter(trajectory, geometry, out starttime timestamp[], out endtime timestamp[]) AS
+$$
+DECLARE
+	user_traj			alias for $1;
+	input_geometry			alias for $2;
+	f_trajectory_segtable_name	text;
+
+	sql				text;
+	data				record;
+	isIntersect			boolean;
+
+	intersect_tpseg			tpoint[];
+	tpoint_to_Linestring		geometry;
+	
+	inetersectionLinestrings	geometry;
+	differenceLinestrings		geometry;
+	boundarypoint			geometry;
+	
+	differencecount			integer;
+	intersectioncount		integer;
+
+	isIntersects			boolean;
+	isdisjoint			boolean;
+	iscoveredby			boolean;
+	isinside			boolean;
+
+	i				integer;
+	j				integer;
+	tpoint_size			integer;
+	nowtpointnumber			integer;
+	lineequaltpoint			tpoint[];
+	lineequaltpoint_size		integer;
+
+	diffline			geometry;
+	numberofdifflinetopoint		integer;
+	intersectsdiff			geometry[];
+	numberofintersectsdiff		integer;
+	
+	interline			geometry;
+	numberofinterlinetopoint	integer;
+	intersectsinner			geometry[];
+	
+	sequenceOfgeometry		geometry[];
+	sequenceOfdiff_starttime	timestamp[];
+	sequenceOfdiff_endtime		timestamp[];
+	sequenceOfinter_starttime	timestamp[];
+	sequenceOfinter_endtime		timestamp[];
+
+	searchpoint			geometry;
+	is_line_tp_equal		boolean;
+		
+	
+BEGIN
+	sql := 'select relname from pg_catalog.pg_class c
+		where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+
+	--traj의 모든 tpoint segment를 검색하여 주여진 영역과 intersection이 일어나는 영역들을 tpoint[]형태로 리턴
+	EXECUTE 'select getIntersectTpoint( $1, $2 )' INTO intersect_tpseg USING user_traj, input_geometry;
+	
+	--구해진 tpoint[]를 geometry(point[])로 변환
+	EXECUTE 'select tpoint_to_linestring( $1 )' INTO tpoint_to_Linestring USING intersect_tpseg;
+
+	--구해진 linestring를 이용하여 intersetion과 difference를 실행한다.
+	EXECUTE 'select st_intersection( $1, $2 )' INTO inetersectionLinestrings USING tpoint_to_Linestring, input_geometry;
+	EXECUTE 'select st_difference( $1, $2 )' INTO differenceLinestrings USING tpoint_to_Linestring, input_geometry;
+	
+	-- 구해진 differencelinestring중에 해당 영역과 intersects 되는지를 확인한다.
+	-- intersects가 되지 않는다면 해당 linestring는 검사할 필요가 없다.
+	EXECUTE 'select st_numgeometries( $1 )' INTO differencecount USING differenceLinestrings;
+
+	i := 1;
+	nowtpointnumber := 1;
+	
+	EXECUTE 'select array_upper( $1, 1)' INTO tpoint_size USING intersect_tpseg;
+
+	-- differencelinestring들중 해당 영역과 intersects 되는 라인만을 찾는다.
+	WHILE ( differencecount >= i) LOOP
+		-- i번째 diffenencelinestring를 가져온다.
+		EXECUTE 'select st_geometryn( $1, $2)' INTO diffline USING differenceLinestrings, i;
+		-- i번째 differencelinestring가 해당 영역과 intersects 되는지 확인
+		EXECUTE 'select st_intersects( $1, $2 )' INTO isIntersects USING diffline, input_geometry;
+
+		IF( isIntersects ) THEN
+			EXECUTE 'select array_append($1, $2)' INTO intersectsdiff USING intersectsdiff, diffline;
+		END IF;
+	END LOOP;
+	
+	-- tpoint[i] 번째 점이 overlap되는 linestring를 찾는다.
+	WHILE( intersect_tpseg > i ) LOOP
+		EXECUTE 'select array_upper( $1, 1 )' INTO numberofintersectsdiff USING intersectsdiff;
+		j := 1;
+		WHILE ( intersectsdiff_size > j) LOOP
+			EXECUTE 'select st_coverdby( $1, $2)' INTO is_line_tp_equal USING intersect_tpseg[i], intersectsdiff[j];
+			IF( is_line_tp_equal ) THEN
+				EXECUTE 'select array_append( $1, $2)' INTO lineequaltpoint USING lineequaltpoint, intersect_tpseg[i];
+				i := i+1;
+				EXIT;
+			END IF;
+		END LOOP;
+	END LOOP;
+		
+	--linestring의 순서대로 검사 
+	WHILE( differencecount >= i) LOOP
+		-- differencelinstrings에서 line를 하나씩 가져온다.
+		sql := 'select st_geometryn( $1, $2 )';
+		EXECUTE sql INTO diffline USING differenceLinestrings, i;
+		raise notice 'differenceLinestrings, i : %', diffline;
+
+		-- 주어진 linestring에 일치하는 tpoint[]를 찾는다.
+		-- 먼저 linestring의 point갯수를 가져와서 tpoint[]의 현재 점부터 검사를 한다.  
+		sql := 'select st_numpoints( $1 )';
+		EXECUTE sql INTO numberofdifflinetopoint USING diffline;
+		raise notice 'numberofdifflinetopoint 에 데이터 삽입 : %',numberofdifflinetopoint;
+	
+		nowtpointnumber := 1;
+		j := 1;
+		WHILE(  numberofdifflinetopoint > j  AND nowtpointnumber <= tpoint_size ) LOOP
+			-- linestring의 point와 tpoint의 현재 point을 비교하기 위하여 linestring의 point을 가져온다.
+			--EXECUTE 'select st_pointn( $1, $2 )' INTO searchpoint USING diffline, j;
+
+			EXECUTE 'select st_coveredby( $1, $2 )' INTO is_line_tp_equal USING intersect_tpseg[nowtpointnumber].p, diffline;
+
+			IF(is_line_tp_equal) THEN
+				--만약 linestring의 point와 tpoint의 point가 같다면 lineequaltpoint에 tpoint를 삽입해준다.
+				sql := 'select array_append( $1, $2)';
+				EXECUTE sql INTO lineequaltpoint USING lineequaltpoint, intersect_tpseg[nowtpointnumber];
+				raise notice 'tpoint[] 에 데이터 삽입%', sql;
+				j := j+1;
+				nowtpointnumber := nowtpointnumber+1;
+				
+			ELSE
+				IF( numberofdifflinetopoint > 2 AND j = 1 ) THEN
+				j := j + 1;
+				RAISE notice 'j 출력 : ,  %' , j;
+				ELSE
+				-- 같지 않다면 lineequaltpoint를 초기화 해주고 linestring의 처음부터 다시 검사.
+					lineequaltpoint := null;
+					
+					j := 1;
+					nowtpointnumber := nowtpointnumber+1;
+				END IF;
+			END IF;
+		END LOOP;
+		
+		IF( lineequaltpoint IS NOT NULL ) THEN
+			--EXECUTE 'select st_pointn( $1, $2 )' INTO searchpoint USING diffline, numberofdifflinetopoint;
+
+			EXECUTE 'select st_coveredby( $1, $2 )' INTO is_line_tp_equal USING intersect_tpseg[nowtpointnumber].p, diffline;
+
+			IF(is_line_tp_equal) THEN
+				EXECUTE 'select array_append( $1, $2)' INTO lineequaltpoint USING lineequaltpoint, intersect_tpseg[nowtpointnumber];
+				nowtpointnumber := nowtpointnumber+1;
+			ELSE
+				
+			END IF;
+			EXECUTE 'select array_upper( $1, 1 )' INTO lineequaltpoint_size USING lineequaltpoint;			
+		END IF;
+		sequenceOfdiff_starttime[i] := lineequaltpoint[1].ptime;
+		sequenceOfdiff_endtime[i] := lineequaltpoint[lineequaltpoint_size].ptime;
+
+		i := i + 1;
+	END LOOP;
+
+	starttime := sequenceOfdiff_starttime;
+	endtime := sequenceOfdiff_endtime;
+		
+END
+$$
+LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION slice(trajectory, timestamp without time zone, timestamp without time zone, out trajec tpoint[])
+  RETURNS setof tpoint[] AS
+$BODY$
+DECLARE
+	traj	alias for $1;
+	start_time	alias for $2;
+	end_time	alias for $3;
+
+	c_trajectory		trajectory;
+	c_trajectory_segtable_name	text;
+	user_table_data		record;
+	data				RECORD;
+	
+	tp_seg		tpoint[];
+	new_tpseg	tpoint[];
+	i		integer;
+	sql		text;
+	k		integer;
+
+	
+BEGIN
+sql := 'select relname from pg_catalog.pg_class c
+	where c.oid = '|| traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO c_trajectory_segtable_name;
+	
+		sql := 'select * from ' || quote_ident(c_trajectory_segtable_name) || ' where mpid = ' || traj.moid || 
+			' order by start_time';
+
+		FOR data IN EXECUTE sql LOOP
+			IF( data.start_time <= end_time OR data.end_time >= start_time ) THEN
+				tp_seg := data.tpseg;
+
+				i := 1;
+
+				WHILE( i <= data.mpcount ) LOOP
+					IF( tp_seg[i].ptime >= start_time AND tp_seg[i].ptime <= end_time ) THEN
+						IF( new_tpseg = NULL  ) THEN
+							new_tpseg := tp_seg[1:i];
+						ELSE
+							EXECUTE 'select array_append($1, $2)'
+							INTO new_tpseg USING new_tpseg, tp_seg[i];
+						END IF;
+					END IF;
+					i := i+1;
+				END LOOP;
+			END IF;
+		END LOOP;
+
+		--RETURN new_tpseg;
+--		sql := 'select array_append($1, $2)';
+--		EXECUTE sql INTO trajec using trajec, new_tpseg;
+		trajec := new_tpseg;
+
+		return next;
+	return;
+END
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE
+COST 100;
+
+CREATE OR REPLACE FUNCTION stay(trajectory, text) RETURNS setof text AS
+$$
+DECLARE
+	user_traj	alias for $1;
+	user_rect	alias for $2;
+	f_trajectory_segtable_name	text;
+	sql				text;
+	data				record;
+	rect_text			text;
+	time_stamp	TIMESTAMP;
+	time_stamp2	TIMESTAMP;
+	rect_origin	geometry;
+BEGIN
+	sql := 'select relname from pg_catalog.pg_class c
+	where c.oid = '|| user_traj.segtableoid;
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_trajectory_segtable_name;
+
+	EXECUTE 'select GeometryFromText(' || quote_literal(user_rect) || ')'
+	into rect_origin;
+
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
+	FOR data IN EXECUTE sql LOOP
+		IF( intersects(rect_origin, data.rect) = TRUE ) THEN
+			EXECUTE 'select getbbox( $1 )'
+			INTO rect_text USING data.rect;
+			return next rect_text;
+		END IF;
+
+	END LOOP;
+
+END
+$$
+LANGUAGE 'plpgsql';
+
+--tpoint[]를 입력하면 linestring를 리턴해주는 함수
+CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry AS
+$$
+DECLARE
+	input_tpoint	alias for $1;
+
+	tpoinA_to_geometryA	geometry[];
+	tpoint_to_Linestring	geometry;
+BEGIN
+	--tpoint[]를 point[]로 변환
+	EXECUTE 'select getpointarray( $1 )' INTO tpoinA_to_geometryA USING input_tpoint;
+
+	--구해진 point[]를 이용하여 linestring를 구한다.
+	EXECUTE 'select st_makeline( $1 )' INTO tpoint_to_Linestring USING tpoinA_to_geometryA;
+
+	RETURN tpoint_to_Linestring;
+END
+$$
+LANGUAGE 'plpgsql'
 
