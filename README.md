@@ -136,4 +136,11 @@ from taxi;
 
 </pre>
 
+## Install Environment
+<pre>
+1. PostgresQL 9.3
+2. postGIS 2.1.3
+3. Python 3.2
+
+</pre>
 
