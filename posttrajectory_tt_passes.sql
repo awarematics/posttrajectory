@@ -55,3 +55,9 @@ CREATE OR REPLACE FUNCTION _TT_Passes(geom1 geometry, geom2 geometry, tpoint_arr
   
 -- END _TT_Passes:
 ------------------------------------------------------------------------------------------
+
+
+-- _TT_passes 테스트
+
+explain analyze
+select st_asText(tl_spsb_statn.geom) from tl_spsb_statn, mpseq_18491_traj where _TT_passes(mpseq_18491_traj.rect, tl_spsb_statn.geom, mpseq_18491_traj.tpseg) AND  mpseq_18491_traj.segid != 1;
