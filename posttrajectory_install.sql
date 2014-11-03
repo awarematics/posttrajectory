@@ -1,16 +1,19 @@
+﻿
+-- TYPE tpoint 정의 --
 CREATE TYPE tpoint as(
 	p	geometry,
 	ptime	timestamp with time zone
 );
 
 
+-- TYPE trajectory 정의 --
 CREATE TYPE trajectory as(
 	segtableoid	oid,
 	moid		integer	
 );
 
 
-
+-- TABLE trajectory_columns 정의 --
 CREATE TABLE trajectory_columns
 (
 	f_table_catalog character varying(256) NOT NULL,
@@ -29,7 +32,6 @@ CREATE TABLE trajectory_columns
 WITH (
   OIDS=TRUE
 );
-
 
 
 -- tpoint[]를 받아서 box2d(geometry)를 리턴해준다.
@@ -68,8 +70,6 @@ $$
 LANGUAGE 'plpgsql';
 
 
-
-
 CREATE OR REPLACE FUNCTION delete_mpoint_seg() RETURNS trigger AS $delete_mpoint_seg$
 DECLARE
 	segtable_name		text;
@@ -103,42 +103,6 @@ DECLARE
 
     END;
 $delete_mpoint_seg$ LANGUAGE plpgsql;
-
-
-
-CREATE PROCEDURAL LANGUAGE 'plpython3u' HANDLER plpython_call_handler;
-
-
-CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
-	# 해당 테이블의 이름을 가져온다.
-	table_name = TD["table_name"]
-
-	#segtable_oid를 가져온다. 
-	plan = plpy.prepare("select f_segtableoid::oid from trajectory_columns where f_table_name = $1", ["text"])
-	segtable_oid = plpy.execute(plan, [table_name])
-
-	#segcolumn_name를 가져온다.
-	plan = plpy.prepare("select f_trajectory_column::text from trajectory_columns where f_table_name = $1", ["text"])
-	segcolumn_name = plpy.execute(plan, [table_name])
-
-	#sequence_name를 가져온다.
-	plan = plpy.prepare("select f_sequence_name from trajectory_columns where f_table_name = $1", ["text"])	
-	sequence_name = plpy.execute(plan, [table_name])
-
-	#sequence_name를 이용하여 삽입할 sequence를 결정한다.
-	plan = plpy.prepare("select nextval($1)", ["text"])
-	moid = plpy.execute(plan, [sequence_name[0]["f_sequence_name"]])
-
-	#user maked column(trajectoryColumn)의 값을 삽입해준다.
-	TD["new"][segcolumn_name[0]['f_trajectory_column']] = (int(segtable_oid[0]["f_segtableoid"]), int(moid[0]["nextval"]))
-	
-	#TD["new"][segcolumn_name[0]['f_trajectory_column']] = int(segtable_oid[0]["f_segtableoid"])
-	#TD["new"] = {[segcolumn_name[0]['f_trajectory_column']]:int(segtable_oid[0]["f_segtableoid"])}
-	
-	return "MODIFY"
-	
-$$ LANGUAGE plpython3u;
-
 
 
 -- AddTrajectoryColumn 함수 array 크기를 지정해주지 않는다.
@@ -318,8 +282,6 @@ COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, ch
 					'args: schema_name, table_name, column_name, srid, type, dimentrion';
 
 
-
-
 -- AddTrajectoryColumn 함수 tpseg 크기를 지정해줘야 한다.
 CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
 						integer, character varying, integer, integer)
@@ -352,7 +314,6 @@ BEGIN
 
 	--verify SRID
 	
-
 
 	-- Verify schema  테이블에 catalog_name & schema_name 추가
 	IF ( f_schema_name IS NOT NULL AND f_schema_name != '' ) THEN
@@ -422,7 +383,6 @@ BEGIN
 		' AND f_trajectory_column = ' || quote_literal(f_column_name);
 	RAISE DEBUG '%', sql;
 	EXECUTE sql;
-
 	
 
 	f_trajectory_segtable_name := 'mpseq_' || table_oid || '_' || f_column_name;
@@ -477,15 +437,12 @@ BEGIN
 	EXECUTE sql;
 
 
-
 	EXECUTE 'CREATE TRIGGER insert_trigger 
 		BEFORE INSERT ON ' || quote_ident(f_table_name) || ' FOR EACH ROW EXECUTE PROCEDURE insert_trigger()';
-
 
 	
 	EXECUTE 'CREATE TRIGGER delete_mpoint_seg 
 		AFTER DELETE ON ' || quote_ident(f_table_name) || ' FOR EACH ROW EXECUTE PROCEDURE delete_mpoint_seg()';
-
 
 
 	RETURN
@@ -503,9 +460,6 @@ $BODY$
 ALTER FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) OWNER TO postgres;
 COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) IS 
 					'args: schema_name, table_name, column_name, srid, type, dimentrion';
-
-
-
 
 
 
@@ -529,7 +483,6 @@ END
 $$
   LANGUAGE 'plpgsql' VOLATILE STRICT
   COST 100;
-
 
 
 CREATE OR REPLACE FUNCTION getTimeStamp(integer ) RETURNS timestamp AS
@@ -582,7 +535,6 @@ COST 100;
 
 
 
-
 -- 인자값으로 tpoint의 array를 받는 append함수
 CREATE OR REPLACE FUNCTION append(trajectory, tpoint[]) RETURNS trajectory AS
 $$
@@ -613,10 +565,6 @@ END
 $$
 LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
-
-
-
-
 
 
 CREATE OR REPLACE FUNCTION append(trajectory, tpoint ) RETURNS trajectory AS
@@ -715,9 +663,6 @@ ALTER FUNCTION append(trajectory, tpoint) OWNER TO postgres;
 COMMENT ON FUNCTION append(trajectory, tpoint) IS 'args: trajectory columl name, tpoint';
 
 
-
-
-
 -- 삭제시 시작시간과 시간간격(초단위)을 입력하면 삭제를 해준다.
 CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, integer) RETURNS trajectory AS
 $$
@@ -739,9 +684,6 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql' ;
-
-
-
 
 
 CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, timestamp) RETURNS trajectory AS
@@ -875,8 +817,6 @@ $$
 LANGUAGE 'plpgsql' ;
 
 
-
-
 CREATE OR REPLACE FUNCTION modify(trajectory, tpoint) RETURNS trajectory AS
 $$
 DECLARE
@@ -948,9 +888,6 @@ $$
 LANGUAGE 'plpgsql';
 
 
-
-
-
 CREATE OR REPLACE FUNCTION modify(trajectory, tpoint[]) RETURNS trajectory AS
 $$
 DECLARE
@@ -976,9 +913,6 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
-
-
-
 
 
 -- 데이터의 수정 함수, trajectory와 시작시간, 끝시간, 변경할 데이터를 입력해야 한다.
@@ -1188,8 +1122,6 @@ $$
 LANGUAGE 'plpgsql';
 
 
-
-
 --SELECT 함수 trajectory와 시작시간 끝시간을 입력해야 한다.
 CREATE OR REPLACE FUNCTION trajectory_select(trajectory, timestamp, timestamp) RETURNS tpoint[] AS
 $$
@@ -1239,7 +1171,6 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
-
 
 
 CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory)
@@ -1303,11 +1234,10 @@ BEGIN
 	return return_value;
 END
 
-
-
 $BODY$
 LANGUAGE 'plpgsql' VOLATILE
 COST 100;
+  
   
 CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone AS
 $BODY$
@@ -1334,6 +1264,7 @@ END
 $BODY$
 LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
+
 
 --traj와 영역을 주면 해당 영역에 교차하는 tpoint가 있는 segment의 모든 tpoint를 리턴해준다.
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[] AS
@@ -1370,6 +1301,7 @@ END
 $$
 LANGUAGE 'plpgsql';
 
+
 --tpoint array를 주면 geometry[](포인트[])를 리턴해준다.
 CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[] AS
 $$
@@ -1400,6 +1332,7 @@ END
 $$
 LANGUAGE 'plpgsql';
 
+
 -- seg table의 rect 정보를 보기 위한 함수
 --drop function getRect_trajectory(trajectory) 
 
@@ -1427,6 +1360,7 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
+
 
 -- Function: gettimestamp(integer)
 
@@ -1458,6 +1392,7 @@ END
 $BODY$
 LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
+
 
 CREATE OR REPLACE FUNCTION gettimestamp(integer)
   RETURNS timestamp without time zone AS
@@ -1514,6 +1449,7 @@ end
 $$
 language 'plpgsql';
 
+
 CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[],  OUT tpoint text, OUT ptime_timestamp timestamp without time zone)
   RETURNS SETOF record AS
 $BODY$
@@ -1541,6 +1477,7 @@ begin
 end
 $BODY$
 LANGUAGE 'plpgsql' VOLATILE;
+
 
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[] AS
 $$
@@ -1665,20 +1602,7 @@ BEGIN
 			EXECUTE 'select array_append($1, $2)' INTO intersectsdiff USING intersectsdiff, diffline;
 		END IF;
 	END LOOP;
-	
-	-- tpoint[i] 번째 점이 overlap되는 linestring를 찾는다.
-	WHILE( intersect_tpseg > i ) LOOP
-		EXECUTE 'select array_upper( $1, 1 )' INTO numberofintersectsdiff USING intersectsdiff;
-		j := 1;
-		WHILE ( intersectsdiff_size > j) LOOP
-			EXECUTE 'select st_coverdby( $1, $2)' INTO is_line_tp_equal USING intersect_tpseg[i], intersectsdiff[j];
-			IF( is_line_tp_equal ) THEN
-				EXECUTE 'select array_append( $1, $2)' INTO lineequaltpoint USING lineequaltpoint, intersect_tpseg[i];
-				i := i+1;
-				EXIT;
-			END IF;
-		END LOOP;
-	END LOOP;
+
 		
 	--linestring의 순서대로 검사 
 	WHILE( differencecount >= i) LOOP
@@ -1749,6 +1673,7 @@ END
 $$
 LANGUAGE 'plpgsql';
 
+
 CREATE OR REPLACE FUNCTION slice(trajectory, timestamp without time zone, timestamp without time zone, out trajec tpoint[])
   RETURNS setof tpoint[] AS
 $BODY$
@@ -1810,6 +1735,7 @@ $BODY$
 LANGUAGE 'plpgsql' VOLATILE
 COST 100;
 
+
 CREATE OR REPLACE FUNCTION stay(trajectory, text) RETURNS setof text AS
 $$
 DECLARE
@@ -1828,13 +1754,14 @@ BEGIN
 	RAISE DEBUG '%', sql;
 	EXECUTE sql INTO f_trajectory_segtable_name;
 
-	EXECUTE 'select GeometryFromText(' || quote_literal(user_rect) || ')'
+	EXECUTE 'select ST_GeomFromText(' || quote_literal(user_rect) || ')'
 	into rect_origin;
 
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
 	FOR data IN EXECUTE sql LOOP
-		IF( intersects(rect_origin, data.rect) = TRUE ) THEN
-			EXECUTE 'select getbbox( $1 )'
+		IF( ST_Intersects(rect_origin, data.rect) = TRUE ) THEN
+			--EXECUTE 'select getbbox( $1 )'
+			EXECUTE 'select box( $1 )'
 			INTO rect_text USING data.rect;
 			return next rect_text;
 		END IF;
@@ -1844,6 +1771,7 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
+
 
 --tpoint[]를 입력하면 linestring를 리턴해주는 함수
 CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry AS
@@ -1864,4 +1792,7 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
+
+
+
 
