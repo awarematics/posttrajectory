@@ -50,6 +50,7 @@ BEGIN
 	RETURN input_tpoint.ptime;
 END
 $$
+
 LANGUAGE 'plpgsql';
 
 -- END TT_inst:
@@ -231,6 +232,181 @@ LANGUAGE 'plpgsql';
 
 
 
+
+
+
+
+
+
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TT_atinstant(tpoint[], TIMESTAMP)
+-- RETURNS : tpoint[], TIMESTAMP -> tpoint
+-- CREATED BY YOO KI HYUN
+
+-- START TT_atinstant:
+
+-- DROP FUNCTION TT_atinstant(tpoint[], TIMESTAMP);
+
+CREATE OR REPLACE FUNCTION TT_atinstant(tpoint[], TIMESTAMP) RETURNS tpoint AS
+$$
+DECLARE
+	tpoint_arr		alias for $1;
+	instant			alias for $2;
+
+	result_tpoint		tpoint;
+BEGIN
+
+	FOR i IN array_lower(tpoint_arr, 1)..array_upper(tpoint_arr, 1) LOOP
+		IF (TT_inst(tpoint_arr[i]) = instant) THEN
+			result_tpoint = tpoint_arr[i];		
+		END IF;	
+	END LOOP;
+
+	RETURN result_tpoint;
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TT_atinstant:
+------------------------------------------------------------------------------------------
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TT_distance(geometry, geometry)
+-- RETURNS : geometry, geometry -> real
+-- CREATED BY YOO KI HYUN
+
+-- START TT_distance:
+
+-- DROP FUNCTION TT_distance(geometry, geometry);
+
+CREATE OR REPLACE FUNCTION TT_distance(geometry, geometry) RETURNS real AS
+$$
+DECLARE
+	geom_line1	alias for $1;
+	geom_line2	alias for $2;
+
+	result_real	real;
+BEGIN
+	result_real = ST_Distance(geom_line1, geom_line2);
+
+	RETURN result_real;
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TT_distance:
+------------------------------------------------------------------------------------------
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TT_initial(tpoint[])
+-- RETURNS : tpoint[] -> tpoint
+-- CREATED BY YOO KI HYUN
+
+-- START TT_initial:
+
+-- DROP FUNCTION TT_initial(tpoint[]);
+
+CREATE OR REPLACE FUNCTION TT_initial(tpoint[]) RETURNS tpoint AS
+$$
+DECLARE
+	tpoint_arr		alias for $1;
+
+	result_tpoint		tpoint;
+BEGIN
+	result_tpoint = tpoint_arr[0];		
+	
+	RETURN result_tpoint;
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TT_initial:
+------------------------------------------------------------------------------------------
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TT_inside(geometry, geometry)
+-- RETURNS : geometry, geometry -> boolean
+-- CREATED BY YOO KI HYUN
+
+-- START TT_inside:
+
+-- DROP FUNCTION TT_inside(geometry, geometry);
+
+CREATE OR REPLACE FUNCTION TT_inside(geometry, geometry) RETURNS boolean AS
+$$
+DECLARE
+	geom_point	alias for $1;
+	geom_region	alias for $2;
+
+	result_bool	boolean;
+BEGIN
+	result_bool = ST_Within(geom_point, geom_region);
+
+	RETURN result_bool;
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TT_inside:
+------------------------------------------------------------------------------------------
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TT_atperiods(tpoint[], periods)
+-- RETURNS : tpoint[], periods -> tpoint[]
+-- CREATED BY YOO KI HYUN
+
+-- START TT_atperiods:
+
+-- DROP FUNCTION TT_atperiods(tpoint[], periods);
+
+CREATE OR REPLACE FUNCTION TT_atperiods(tpoint[], periods) RETURNS tpoint[] AS
+$$
+DECLARE
+	tpoint_arr		alias for $1;
+	input_periods		alias for $2;
+
+	first_idx		int;
+	last_idx		int;
+	
+	result_tpoint_arr	tpoint[];
+BEGIN
+
+	FOR i IN array_lower(tpoint_arr, 1)..array_upper(tpoint_arr, 1) LOOP
+		IF (TT_inst(tpoint_arr[i]) = input_periods.startTime) THEN
+			first_idx = i;		
+		ELSIF (TT_inst(tpoint_arr[i]) = input_periods.endTime) THEN
+			last_idx = i;
+		END IF;	
+	END LOOP;
+
+	FOR i IN first_idx..last_idx LOOP
+		result_tpoint_arr := tpoint_arr[i];
+	END LOOP;
+
+	RETURN result_tpoint_arr;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TT_atperiods:
+------------------------------------------------------------------------------------------
 
 
 
