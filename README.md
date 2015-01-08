@@ -1,8 +1,6 @@
 PostTrajectory Project
 ==============
 
-
-
 ## Creation Trajectory Table
 
 <pre>
