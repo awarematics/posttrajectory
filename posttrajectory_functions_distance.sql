@@ -20,15 +20,15 @@ CREATE TYPE mreal as(
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_distance(tpoint[], tpoint[])
+-- NAME : TJ_distance(tpoint[], tpoint[])
 -- RETURNS : tpoint[], tpoint[] -> mreal
 -- CREATED BY YOO KI HYUN
 
--- START TT_distance:
+-- START TJ_distance:
 
--- DROP FUNCTION TT_distance(tpoint[], tpoint[]);
+-- DROP FUNCTION TJ_distance(tpoint[], tpoint[]);
 
-CREATE OR REPLACE FUNCTION TT_distance(tpoint[], tpoint[]) RETURNS real[] AS
+CREATE OR REPLACE FUNCTION TJ_distance(tpoint[], tpoint[]) RETURNS real[] AS
 $$
 DECLARE
 	mp1	alias for $1;
@@ -48,8 +48,8 @@ BEGIN
 	timeArr = UT_getSweepTimes( mp1, mp2 );
 	
 	FOR i IN 1..(array_length(timeArr, 1)) LOOP	
-		tp1 := TT_atInstant(mp1, timeArr[i]);
-		tp2 := TT_atInstant(mp2, timeArr[i]);
+		tp1 := TJ_atInstant(mp1, timeArr[i]);
+		tp2 := TJ_atInstant(mp2, timeArr[i]);
 		
 		distance = ST_Distance( tp1.point, tp2.point );
 		aMreal[i] := distance;
@@ -60,7 +60,7 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_distance:
+-- END TJ_distance:
 ------------------------------------------------------------------------------------------
 
 
@@ -92,7 +92,7 @@ BEGIN
 	FOR i IN 1..(array_length(mp3, 1)) LOOP
 	
 	timeArr[i] := mp3[i].t;	
-	RAISE NOTICE 'i is %', timeArr[i];	
+	--RAISE NOTICE 'i is %', timeArr[i];	
 	
 	END LOOP;
 

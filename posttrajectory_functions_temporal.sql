@@ -1,30 +1,30 @@
 ﻿
--- TT_BEGIN(periods)
--- TT_END(periods)
--- TT_PERIOD(TIMESTAMP, TIMESTAMP)
--- TT_Equals(periods, periods)
--- TT_Before(periods, periods)
--- TT_Meets(periods, periods)
--- TT_Overlaps(periods, periods)
--- TT_During(periods, periods)
--- TT_Starts(periods, periods)
--- TT_Finishes(periods, periods)
--- TT_Intersects(periods, periods)
--- TT_Isnull(periods)
+-- TP_BEGIN(periods)
+-- TP_END(periods)
+-- TP_PERIOD(TIMESTAMP, TIMESTAMP)
+-- TP_Equals(periods, periods)
+-- TP_Before(periods, periods)
+-- TP_Meets(periods, periods)
+-- TP_Overlaps(periods, periods)
+-- TP_During(periods, periods)
+-- TP_Starts(periods, periods)
+-- TP_Finishes(periods, periods)
+-- TP_Intersects(periods, periods)
+-- TP_Isnull(periods)
 
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_BEGIN(periods)
+-- NAME : TP_BEGIN(periods)
 -- RETURNS : periods -> TIMESTAMP
 -- CREATED BY YOO KI HYUN
 
--- START TT_BEGIN:
+-- START TP_BEGIN:
 
--- DROP FUNCTION TT_BEGIN(periods);
+-- DROP FUNCTION TP_BEGIN(periods);
 
-CREATE OR REPLACE FUNCTION TT_BEGIN(periods) RETURNS TIMESTAMP AS 
+CREATE OR REPLACE FUNCTION TP_BEGIN(periods) RETURNS TIMESTAMP AS 
 $$
 DECLARE
 	input_period	alias for $1;
@@ -34,21 +34,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_BEGIN:
+-- END TP_BEGIN:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_END(periods)
+-- NAME : TP_END(periods)
 -- RETURNS : periods -> TIMESTAMP
 -- CREATED BY YOO KI HYUN
 
--- START TT_END:
+-- START TP_END:
 
--- DROP FUNCTION TT_END(periods);
+-- DROP FUNCTION TP_END(periods);
 
-CREATE OR REPLACE FUNCTION TT_END(periods) RETURNS TIMESTAMP AS 
+CREATE OR REPLACE FUNCTION TP_END(periods) RETURNS TIMESTAMP AS 
 $$
 DECLARE
 	input_period 	alias for $1;
@@ -58,21 +58,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_END:
+-- END TP_END:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_PERIOD(TIMESTAMP, TIMESTAMP)
+-- NAME : TP_PERIOD(TIMESTAMP, TIMESTAMP)
 -- RETURNS : TIMESTAMP, TIMESTAMP -> PERIODS
 -- CREATED BY YOO KI HYUN
 
--- START TT_PERIOD:
+-- START TP_PERIOD:
 
--- DROP FUNCTION TT_PERIOD(TIMESTAMP, TIMESTAMP);
+-- DROP FUNCTION TP_PERIOD(TIMESTAMP, TIMESTAMP);
 
-CREATE OR REPLACE FUNCTION TT_PERIOD(TIMESTAMP, TIMESTAMP) RETURNS periods AS 
+CREATE OR REPLACE FUNCTION TP_PERIOD(TIMESTAMP, TIMESTAMP) RETURNS periods AS 
 $$
 DECLARE
 	startTime		alias for $1;
@@ -88,21 +88,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_PERIOD:
+-- END TP_PERIOD:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 동등 확인
--- NAME : TT_Equals(periods, periods)
+-- NAME : TP_Equals(periods, periods)
 -- RETURNS : periods, periods -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Equals:
+-- START TP_Equals:
 
--- DROP FUNCTION TT_Equals(periods, periods);
+-- DROP FUNCTION TP_Equals(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Equals(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Equals(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -120,21 +120,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Equals:
+-- END TP_Equals:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 Before 확인
--- NAME : TT_Before(periods, periods)
+-- NAME : TP_Before(periods, periods)
 -- RETURNS : periods, periods -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Before:
+-- START TP_Before:
 
--- DROP FUNCTION TT_Before(periods, periods);
+-- DROP FUNCTION TP_Before(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Before(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Before(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -151,21 +151,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Before:
+-- END TP_Before:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 연결 확인
--- NAME : TT_Meets(periods, periods)
+-- NAME : TP_Meets(periods, periods)
 -- RETURNS : periods, periods -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Meets:
+-- START TP_Meets:
 
--- DROP FUNCTION TT_Meets(periods, periods);
+-- DROP FUNCTION TP_Meets(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Meets(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Meets(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -183,21 +183,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Meets:
+-- END TP_Meets:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 중첩 확인
--- NAME : TT_Overlaps(periods, periods)
+-- NAME : TP_Overlaps(periods, periods)
 -- RETURNS : period, period -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Overlaps:
+-- START TP_Overlaps:
 
--- DROP FUNCTION TT_Overlaps(periods, periods);
+-- DROP FUNCTION TP_Overlaps(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Overlaps(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Overlaps(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -215,21 +215,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Overlaps:
+-- END TP_Overlaps:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 포함 확인
--- NAME : TT_During(periods, periods)
+-- NAME : TP_During(periods, periods)
 -- RETURNS : period, period -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_During:
+-- START TP_During:
 
--- DROP FUNCTION TT_During(periods, periods);
+-- DROP FUNCTION TP_During(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_During(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_During(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -247,21 +247,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_During:
+-- END TP_During:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 시작점 확인
--- NAME : TT_Starts(periods, periods)
+-- NAME : TP_Starts(periods, periods)
 -- RETURNS : period, period -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Starts:
+-- START TP_Starts:
 
--- DROP FUNCTION TT_Starts(periods, periods);
+-- DROP FUNCTION TP_Starts(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Starts(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Starts(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -279,21 +279,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Starts:
+-- END TP_Starts:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 끝나는점 확인
--- NAME : TT_Finishes(periods, periods)
+-- NAME : TP_Finishes(periods, periods)
 -- RETURNS : period, period -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Finishes:
+-- START TP_Finishes:
 
--- DROP FUNCTION TT_Finishes(periods, periods);
+-- DROP FUNCTION TP_Finishes(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Finishes(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Finishes(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -311,30 +311,30 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Finishes:
+-- END TP_Finishes:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 두 개의 periods의 교차 확인
--- NAME : TT_Intersects(periods, periods)
+-- NAME : TP_Intersects(periods, periods)
 -- RETURNS : period, period -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Intersects:
+-- START TP_Intersects:
 
--- DROP FUNCTION TT_Intersects(periods, periods);
+-- DROP FUNCTION TP_Intersects(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Intersects(periods, periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Intersects(periods, periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
 	period2		alias for $2;
 	
 BEGIN
-	IF TT_Meets(period1, period2) OR TT_Overlaps(period1, period2)
-		OR TT_During(period1, period2) OR TT_Starts(period1, period2) 
-		OR TT_Finishes(period1, period2) THEN
+	IF TP_Meets(period1, period2) OR TP_Overlaps(period1, period2)
+		OR TP_During(period1, period2) OR TP_Starts(period1, period2) 
+		OR TP_Finishes(period1, period2) THEN
 
 		RETURN true;
 	END IF;
@@ -344,21 +344,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Intersects:
+-- END TP_Intersects:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 한 개의 periods의 Null 확인
--- NAME : TT_Isnull(periods)
+-- NAME : TP_Isnull(periods)
 -- RETURNS : period, period -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_Isnull:
+-- START TP_Isnull:
 
--- DROP FUNCTION TT_Isnull(periods, periods);
+-- DROP FUNCTION TP_Isnull(periods, periods);
 
-CREATE OR REPLACE FUNCTION TT_Isnull(periods) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TP_Isnull(periods) RETURNS boolean AS
 $$
 DECLARE
 	period1		alias for $1;
@@ -374,6 +374,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_Isnull:
+-- END TP_Isnull:
 ------------------------------------------------------------------------------------------
 

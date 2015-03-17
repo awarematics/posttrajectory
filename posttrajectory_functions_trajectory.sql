@@ -1,73 +1,79 @@
 ﻿
--- TT_val(tpoint)
--- TT_inst(tpoint)
--- TT_present(tpoint[], TIMESTAMP)
--- TT_trajectory(tpoint[])
--- TT_length(tpoint[])
--- TT_deftime(tpoint[])
-
+-- TJ_val(tpoint)
+-- TJ_inst(tpoint)
+-- TJ_present(tpoint[], TIMESTAMP)
+-- TJ_trajectory(tpoint[])
+-- TJ_length(tpoint[])
+-- TJ_deftime(tpoint[])
+-- TJ_atInstant(tpoint[], TIMESTAMP)
+-- TJ_distance(geometry, geometry)
+-- TJ_distance(tpoint[], tpoint[])
+-- TJ_initial(tpoint[])
+-- TJ_inside(geometry, geometry)
+-- TJ_atPeriods(tpoint[], periods)
+-- TJ_at(tpoint[], geometry)
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_val(tpoint)
+-- NAME : TJ_val(tpoint)
 -- RETURNS : tpoint -> geometry
 -- CREATED BY YOO KI HYUN
 
--- START TT_val:
+-- START TJ_val:
 
--- DROP FUNCTION TT_val(tpoint);
+DROP FUNCTION IF EXISTS TJ_val(tpoint);
 
-CREATE OR REPLACE FUNCTION TT_val(tpoint) RETURNS geometry AS 
+CREATE OR REPLACE FUNCTION TJ_val(tpoint) RETURNS geometry AS 
 $$
 DECLARE
 	input_tpoint 	alias for $1;
 BEGIN
-	RETURN input_tpoint.p;
+	RETURN input_tpoint.point;
 END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_val:
+-- END TJ_val:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_inst(tpoint)
+-- NAME : TJ_inst(tpoint)
 -- RETURNS : tpoint -> TIMESTAMP
 -- CREATED BY YOO KI HYUN
 
--- START TT_inst:
+-- START TJ_inst:
 
--- DROP FUNCTION TT_inst(tpoint);
+DROP FUNCTION IF EXISTS TJ_inst(tpoint);
 
-CREATE OR REPLACE FUNCTION TT_inst(tpoint) RETURNS TIMESTAMP AS 
+CREATE OR REPLACE FUNCTION TJ_inst(tpoint) RETURNS TIMESTAMP AS 
 $$
 DECLARE
 	input_tpoint 	alias for $1;
 BEGIN
-	RETURN input_tpoint.ptime;
+	RETURN input_tpoint.t;
 END
 $$
 
 LANGUAGE 'plpgsql';
 
--- END TT_inst:
+-- END TJ_inst:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_present(tpoint[], TIMESTAMP)
+-- NAME : TJ_present(tpoint[], TIMESTAMP)
 -- RETURNS : tpoint[], TIMESTAMP -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_present:
+-- START TJ_present:
 
--- DROP FUNCTION TT_present(tpoint[], TIMESTAMP);
+DROP FUNCTION IF EXISTS TJ_present(tpoint[], TIMESTAMP);
 
-CREATE OR REPLACE FUNCTION TT_present(tpoint[], TIMESTAMP) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TJ_present(tpoint[], TIMESTAMP) RETURNS boolean AS
 $$
 DECLARE
 	tpoint_arr	alias for $1;
@@ -77,8 +83,8 @@ DECLARE
 	endTime		Timestamp;
 	
 BEGIN
-	startTime := TT_inst(tpoint_arr[array_lower(tpoint_arr, 1)]);
-	endTime := TT_inst(tpoint_arr[array_upper(tpoint_arr, 1)]);
+	startTime := TJ_inst(tpoint_arr[array_lower(tpoint_arr, 1)]);
+	endTime := TJ_inst(tpoint_arr[array_upper(tpoint_arr, 1)]);
 	
 	IF (startTime <= instant AND endTime >= instant) THEN
 		RETURN true;
@@ -91,21 +97,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_inst:
+-- END TJ_inst:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_trajectory(tpoint[])
+-- NAME : TJ_trajectory(tpoint[])
 -- RETURNS : tpoint[] -> geometry
 -- CREATED BY YOO KI HYUN
 
--- START TT_trajectory:
+-- START TJ_trajectory:
 
--- DROP FUNCTION TT_trajectory(tpoint[]);
+DROP FUNCTION IF EXISTS TJ_trajectory(tpoint[]);
 
-CREATE OR REPLACE FUNCTION TT_trajectory(tpoint[]) RETURNS geometry AS
+CREATE OR REPLACE FUNCTION TJ_trajectory(tpoint[]) RETURNS geometry AS
 $$
 DECLARE
 	tpoint_arr	alias for $1;
@@ -118,7 +124,7 @@ BEGIN
 	temp := '';
 
 	FOR i IN array_lower(tpoint_arr, 1)..array_upper(tpoint_arr, 1) LOOP
-		temp := temp || cast(ST_X(TT_val(tpoint_arr[i])) as Text) || ' ' || cast(ST_Y(TT_val(tpoint_arr[i])) as Text);
+		temp := temp || cast(ST_X(TJ_val(tpoint_arr[i])) as Text) || ' ' || cast(ST_Y(TJ_val(tpoint_arr[i])) as Text);
 		txt_arr := array_append(txt_arr, temp);
 		
 		temp := '';
@@ -140,21 +146,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_trajectory:
+-- END TJ_trajectory:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_length(tpoint[])
+-- NAME : TJ_length(tpoint[])
 -- RETURNS : tpoint[] -> real
 -- CREATED BY YOO KI HYUN
 
--- START TT_length:
+-- START TJ_length:
 
--- DROP FUNCTION TT_length(tpoint[]);
+DROP FUNCTION IF EXISTS TJ_length(tpoint[]);
 
-CREATE OR REPLACE FUNCTION TT_length(tpoint[]) RETURNS real AS
+CREATE OR REPLACE FUNCTION TJ_length(tpoint[]) RETURNS real AS
 $$
 DECLARE
 	tpoint_arr	alias for $1;
@@ -167,7 +173,7 @@ BEGIN
 	temp := '';
 
 	FOR i IN array_lower(tpoint_arr, 1)..array_upper(tpoint_arr, 1) LOOP
-		temp := temp || cast(ST_X(TT_val(tpoint_arr[i])) as Text) || ' ' || cast(ST_Y(TT_val(tpoint_arr[i])) as Text);
+		temp := temp || cast(ST_X(TJ_val(tpoint_arr[i])) as Text) || ' ' || cast(ST_Y(TJ_val(tpoint_arr[i])) as Text);
 		txt_arr := array_append(txt_arr, temp);
 		
 		temp := '';
@@ -189,21 +195,21 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_length:
+-- END TJ_length:
 ------------------------------------------------------------------------------------------
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : Mpoint 를 입력받고, Mpoint의 PERIOD를 반환. 
--- NAME : TT_deftime(tpoint[])
+-- NAME : TJ_deftime(tpoint[])
 -- RETURNS : tpoint[] -> timestamp[]
 -- CREATED BY YOO KI HYUN
 
--- START TT_deftime:
+-- START TJ_deftime:
 
--- DROP FUNCTION TT_deftime(tpoint[]);
+DROP FUNCTION IF EXISTS TJ_deftime(tpoint[]);
 
-CREATE OR REPLACE FUNCTION TT_deftime(tpoint[]) RETURNS timestamp[] AS
+CREATE OR REPLACE FUNCTION TJ_deftime(tpoint[]) RETURNS timestamp[] AS
 $$
 DECLARE
 	tpoint_arr	alias for $1;
@@ -211,15 +217,15 @@ DECLARE
 	time_arr	Timestamp[];
 
 BEGIN
-	time_arr[1] := TT_inst(tpoint_arr[array_lower(tpoint_arr, 1)]);
-	time_arr[2] := TT_inst(tpoint_arr[array_upper(tpoint_arr, 1)]);
+	time_arr[1] := TJ_inst(tpoint_arr[array_lower(tpoint_arr, 1)]);
+	time_arr[2] := TJ_inst(tpoint_arr[array_upper(tpoint_arr, 1)]);
 
 	RETURN time_arr;
 END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_deftime:
+-- END TJ_deftime:
 ------------------------------------------------------------------------------------------
 
 
@@ -243,15 +249,15 @@ LANGUAGE 'plpgsql';
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_atinstant(tpoint[], TIMESTAMP)
+-- NAME : TJ_atInstant(tpoint[], TIMESTAMP)
 -- RETURNS : tpoint[], TIMESTAMP -> tpoint
 -- CREATED BY YOO KI HYUN
 
--- START TT_atinstant:
+-- START TJ_atInstant:
 
--- DROP FUNCTION TT_atinstant(tpoint[], TIMESTAMP);
+DROP FUNCTION IF EXISTS TJ_atInstant(tpoint[], TIMESTAMP);
 
-CREATE OR REPLACE FUNCTION TT_atinstant(tpoint[], TIMESTAMP) RETURNS tpoint AS
+CREATE OR REPLACE FUNCTION TJ_atInstant(tpoint[], TIMESTAMP) RETURNS tpoint AS
 $$
 DECLARE
 	tpoint_arr		alias for $1;
@@ -260,33 +266,41 @@ DECLARE
 	result_tpoint		tpoint;
 BEGIN
 
-	FOR i IN array_lower(tpoint_arr, 1)..array_upper(tpoint_arr, 1) LOOP
-		IF (TT_inst(tpoint_arr[i]) = instant) THEN
+	FOR i IN array_lower(tpoint_arr, 1)..(array_upper(tpoint_arr, 1)-1) LOOP
+		IF (TJ_inst(tpoint_arr[i]) = instant) THEN
 			result_tpoint = tpoint_arr[i];		
+		ELSIF (TJ_inst(tpoint_arr[i]) < instant AND TJ_inst(tpoint_arr[i+1]) > instant) THEN
+			result_tpoint = tpoint(UT_getMidPoint(tpoint_arr[i], tpoint_arr[i+1], instant), instant);
+		--ELSIF (TJ_inst(tpoint_arr[1]) > instant || TJ_inst(tpoint_arr[array_upper(tpoint_arr, 1)]) < instant) THEN
+			--result_tpoint = 		
 		END IF;	
 	END LOOP;
+	
+	IF (TJ_inst(tpoint_arr[array_upper(tpoint_arr, 1)]) = instant) THEN
+		result_tpoint = tpoint_arr[array_upper(tpoint_arr, 1)];		
+	END IF;	
 
 	RETURN result_tpoint;
 END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_atinstant:
+-- END TJ_atInstant:
 ------------------------------------------------------------------------------------------
 
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_distance(geometry, geometry)
+-- NAME : TJ_distance(geometry, geometry)
 -- RETURNS : geometry, geometry -> real
 -- CREATED BY YOO KI HYUN
 
--- START TT_distance:
+-- START TJ_distance:
 
--- DROP FUNCTION TT_distance(geometry, geometry);
+DROP FUNCTION IF EXISTS TJ_distance(geometry, geometry);
 
-CREATE OR REPLACE FUNCTION TT_distance(geometry, geometry) RETURNS real AS
+CREATE OR REPLACE FUNCTION TJ_distance(geometry, geometry) RETURNS real AS
 $$
 DECLARE
 	geom_line1	alias for $1;
@@ -301,22 +315,69 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_distance:
+-- END TJ_distance:
 ------------------------------------------------------------------------------------------
 
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_initial(tpoint[])
+-- NAME : TJ_distance(tpoint[], tpoint[])
+-- RETURNS : tpoint[], tpoint[] -> real[]
+-- CREATED BY YOO KI HYUN
+
+-- START TJ_distance:
+
+DROP FUNCTION IF EXISTS TJ_distance(tpoint[], tpoint[]);
+
+CREATE OR REPLACE FUNCTION TJ_distance(tpoint[], tpoint[]) RETURNS real[] AS
+$$
+DECLARE
+	mp1	alias for $1;
+	mp2	alias for $2;
+
+	i 		int;
+	timeArr		TIMESTAMP[];
+
+	tp1		tpoint;
+	tp2		tpoint;
+	distance	real;
+	
+	aMreal		real[];
+	
+BEGIN
+
+	timeArr = UT_getSweepTimes( mp1, mp2 );
+	
+	FOR i IN 1..(array_length(timeArr, 1)) LOOP	
+		tp1 := TJ_atInstant(mp1, timeArr[i]);
+		tp2 := TJ_atInstant(mp2, timeArr[i]);
+		
+		distance = ST_Distance( tp1.point, tp2.point );
+		aMreal[i] := distance;
+	END LOOP;
+
+	RETURN aMreal;
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TJ_distance:
+------------------------------------------------------------------------------------------
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TJ_initial(tpoint[])
 -- RETURNS : tpoint[] -> tpoint
 -- CREATED BY YOO KI HYUN
 
--- START TT_initial:
+-- START TJ_initial:
 
--- DROP FUNCTION TT_initial(tpoint[]);
+DROP FUNCTION IF EXISTS TJ_initial(tpoint[]);
 
-CREATE OR REPLACE FUNCTION TT_initial(tpoint[]) RETURNS tpoint AS
+CREATE OR REPLACE FUNCTION TJ_initial(tpoint[]) RETURNS tpoint AS
 $$
 DECLARE
 	tpoint_arr		alias for $1;
@@ -330,22 +391,22 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_initial:
+-- END TJ_initial:
 ------------------------------------------------------------------------------------------
 
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_inside(geometry, geometry)
+-- NAME : TJ_inside(geometry, geometry)
 -- RETURNS : geometry, geometry -> boolean
 -- CREATED BY YOO KI HYUN
 
--- START TT_inside:
+-- START TJ_inside:
 
--- DROP FUNCTION TT_inside(geometry, geometry);
+DROP FUNCTION IF EXISTS TJ_inside(geometry, geometry);
 
-CREATE OR REPLACE FUNCTION TT_inside(geometry, geometry) RETURNS boolean AS
+CREATE OR REPLACE FUNCTION TJ_inside(geometry, geometry) RETURNS boolean AS
 $$
 DECLARE
 	geom_point	alias for $1;
@@ -360,27 +421,30 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_inside:
+-- END TJ_inside:
 ------------------------------------------------------------------------------------------
 
 
 
 -- FUNCTION DEFINITION
 -- DESCRIPTION : 
--- NAME : TT_atperiods(tpoint[], periods)
+-- NAME : TJ_atPeriods(tpoint[], periods)
 -- RETURNS : tpoint[], periods -> tpoint[]
 -- CREATED BY YOO KI HYUN
 
--- START TT_atperiods:
+-- START TJ_atPeriods:
 
--- DROP FUNCTION TT_atperiods(tpoint[], periods);
+DROP FUNCTION IF EXISTS TJ_atPeriods(tpoint[], periods);
 
-CREATE OR REPLACE FUNCTION TT_atperiods(tpoint[], periods) RETURNS tpoint[] AS
+CREATE OR REPLACE FUNCTION TJ_atPeriods(tpoint[], periods) RETURNS tpoint[] AS
 $$
 DECLARE
 	tpoint_arr		alias for $1;
 	input_periods		alias for $2;
 
+	start_point		geometry;
+	end_point		geometry;
+	
 	first_idx		int;
 	last_idx		int;
 	
@@ -388,9 +452,9 @@ DECLARE
 BEGIN
 
 	FOR i IN array_lower(tpoint_arr, 1)..array_upper(tpoint_arr, 1) LOOP
-		IF (TT_inst(tpoint_arr[i]) = input_periods.startTime) THEN
+		IF (TJ_inst(tpoint_arr[i]) = input_periods.startTime) THEN
 			first_idx = i;		
-		ELSIF (TT_inst(tpoint_arr[i]) = input_periods.endTime) THEN
+		ELSIF (TJ_inst(tpoint_arr[i]) = input_periods.endTime) THEN
 			last_idx = i;
 		END IF;	
 	END LOOP;
@@ -405,12 +469,45 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TT_atperiods:
+-- END TJ_atPeriods:
 ------------------------------------------------------------------------------------------
 
 
 
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TJ_at(tpoint[], geometry)
+-- RETURNS : tpoint[], geometry -> tpoint[]
+-- CREATED BY YOO KI HYUN
 
+-- START TJ_at:
+
+DROP FUNCTION IF EXISTS TJ_at(tpoint[], geometry);
+
+CREATE OR REPLACE FUNCTION TJ_at(tpoint[], geometry) RETURNS tpoint[] AS
+$$
+DECLARE
+	tpoint_arr		alias for $1;
+	input_region		alias for $2;
+
+	temp_traj		geometry;
+	
+	result_geom		geometry;
+	result_tpoint_arr	tpoint[];
+BEGIN
+
+	temp_traj = TJ_trajectory(tpoint_arr);
+
+	result_geom = ST_intersection(temp_traj, input_region);
+
+	RETURN result_tpoint_arr;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TJ_at:
+------------------------------------------------------------------------------------------
 
 
 
