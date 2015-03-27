@@ -8,9 +8,9 @@
 
 -- START UT_getMidPoint:
 
-DROP FUNCTION IF EXISTS UT_getMidPoint(tpoint, tpoint, timestamp with time zone);
+DROP FUNCTION IF EXISTS UT_getMidPoint(tpoint, tpoint, timestamp);
 
-CREATE OR REPLACE FUNCTION UT_getMidPoint(tpoint, tpoint, timestamp with time zone) RETURNS geometry AS 
+CREATE OR REPLACE FUNCTION UT_getMidPoint(tpoint, tpoint, timestamp) RETURNS geometry AS 
 $$
 DECLARE
 	input_tpoint1 	alias for $1;
