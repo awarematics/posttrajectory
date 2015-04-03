@@ -1,8 +1,13 @@
 PostTrajectory Project
 ==============
 
+PostTrajectory is an trajectory and moving objects management system on PostgreSQL/PostGIS. 
+This system have been developed by Awarematics Group, School of Computer, Information, and Communication Engineering, Kunsan National University. Any comments and contributions are welcomed.
 
-
+## Members
+Kihyun Yoo, Kunsan National University
+Pyung Woo Yang, Kunsan National University
+Kwang Woo Nam, Kunsan National University
 
 ## Creation Trajectory Table
 
