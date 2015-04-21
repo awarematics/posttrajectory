@@ -146,10 +146,10 @@ from taxi;
 ## Example queries for distance function
 
 <pre>
-SELECT distance(car1.traj, car2.traj) from car1, car2 where distance(car1.traj, car2.traj) < 100m;
-SELECT MiningPoiSeq(traj) FROM  cars;
-SELECT MiningPoiSeq(traj) FROM cars WHERE distance(traj, point(x,y)) < 100m;
-SELECT MiningPoiSeq(traj) FROM cars WHERE kind='소나타';
+SELECT distance(taxi.traj, bus.traj) FROM taxi, bus where distance(taxi.traj, bus.traj) < 100m;
+SELECT MiningPoiSeq(traj) FROM taxi;
+SELECT MiningPoiSeq(traj) FROM taxi WHERE distance(traj, point(x,y)) < 100m;
+SELECT MiningPoiSeq(traj) FROM taxi WHERE kind='소나타';
 </pre>
 
 ## Install Environment
