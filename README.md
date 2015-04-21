@@ -9,15 +9,6 @@ Kihyun Yoo, Kunsan National University
 Pyung Woo Yang, Kunsan National University
 Kwang Woo Nam, Kunsan National University
 
-## Queries for distance function
-
-<pre>
-SELECT distance( a.traj, b.traj ) from a, b where distance( a.traj, b.traj ) <100
-SELECT MiningPoiSeq(traj) FROM  cars;
-SELECT MiningPoiSeq( traj ) FROM cars WHERE   distance(traj, point(x,y) ) < 100m;
-SELECT MiningPoiSeq( traj ) FROM cars WHERE   kind='소나타';
-</pre>
-
 ## Creation Trajectory Table
 
 <pre>
@@ -152,6 +143,15 @@ from taxi;
 
 </pre>
 
+## Example queries for distance function
+
+<pre>
+SELECT distance(car1.traj, car2.traj) from car1, car2 where distance(car1.traj, car2.traj) < 100m;
+SELECT MiningPoiSeq(traj) FROM  cars;
+SELECT MiningPoiSeq(traj) FROM cars WHERE distance(traj, point(x,y)) < 100m;
+SELECT MiningPoiSeq(traj) FROM cars WHERE kind='소나타';
+</pre>
+
 ## Install Environment
 <pre>
 1. PostgresQL 9.3
@@ -159,4 +159,6 @@ from taxi;
 3. Python 3.2
 
 </pre>
+
+
 
