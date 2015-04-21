@@ -144,7 +144,9 @@ from taxi;
 </pre>
 
 ## Example queries for distance function
-### m_distance=>MDouble, m_mindistance=>minimum distance of MDouble, m_maxdistance=>maximum distance of MDouble
+1. m_distance : MDouble
+2. m_mindistance : minimum distance of MDouble
+3. m_maxdistance : maximum distance of MDouble
 
 <pre>
 SELECT taxi_id, taxi_numer, 
