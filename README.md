@@ -147,7 +147,10 @@ from taxi;
 # m_distance=>MDouble, m_mindistance=>minimum distance of MDouble, m_maxdistance=>maximum distance of MDouble
 
 <pre>
-SELECT taxi_id, taxi_numer, m_distance(traj, GeomFromText('Point( 50 50 )' ), m_mindistance(traj, GeomFromText('Point( 50 50 )' ), m_maxdistance(traj, GeomFromText('Point( 50 50 )' )
+SELECT taxi_id, taxi_numer, 
+       m_distance(traj, GeomFromText('Point( 50 50 )' ),
+       m_mindistance(traj, GeomFromText('Point( 50 50 )' ), 
+       m_maxdistance(traj, GeomFromText('Point( 50 50 )' )
 FROM taxi;
 
 SELECT taxi_id, bus_id, distance( t.traj, b.traj)
@@ -159,7 +162,8 @@ WHERE m_mindistance(traj,  GeomFromText('Point( 50 50 )') < 20;
 
 SELECT taxi_id, taxi_number, slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 FROM taxi 
-WHERE m_mindistance( slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), GeomFromText('Point( 50 50 )') < 50;
+WHERE m_mindistance( slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), 
+                     GeomFromText('Point( 50 50 )') < 50;
 
 SELECT m_distance(b.traj, t.traj) 
 FROM taxi t, bus b 
