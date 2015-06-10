@@ -41,6 +41,11 @@ insert into taxi values(5, '57NU2005', 'Optima', 'hongkd7');
 UPDATE taxi 
 SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
 WHERE  taxi_id = 1;
+
+## MPOINT is ( x y t, x y t, ...) = (float float long, float float long, ...)
+UPDATE taxi 
+SET    traj = append(traj, 'MPOINT( 100 100 5000, 150 150 5001)') 
+WHERE  taxi_id = 1;
 </pre>
 
 
@@ -52,32 +57,51 @@ select * from taxi;
 ## Append GPS Stream or a Trajectort in a Moving Object
 <pre>
 -- append(trajcetory, tpoint[]) 테스트 4개만 추가
-update taxi set traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
+UPDATE taxi 
+SET traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
 					   ( tpoint(st_point(1320, 1220),TIMESTAMP '2010-01-26 15:25:40+09') ), 
 					   ( tpoint(st_point(1405, 1175),TIMESTAMP '2010-01-26 15:29:40+09') ), 
 					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )  
-		where taxi_id = 1;
+WHERE taxi_id = 1;
+
+## new update statement
+UPDATE taxi 
+SET traj = append(traj, 'MPOINT (1510, 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
+WHERE taxi_id = 1;
+
 </pre>
 
 ## Remove GPS Stream or Partial Trajectory in a Moving Object
 <pre>
 -- reomve 테스트 
 --3번째 row의 값 5개 삭제
-update taxi set traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
-	where taxi_id = 1;
+UPDATE taxi 
+SET traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09'
+WHERE taxi_id = 1;
 
+-- new statement
+UPDATE taxi 
+SET traj = remove(traj, 'PERIOD( 5001, 5003)' )
+WHERE taxi_id = 1;
 
 -- 삭제 1row 이상을 삭제하게 되면(row에 tpseg값이 하나도 없게되면) row를 삭제해주는 실험
-update taxi set traj = remove(traj, TIMESTAMP '2010-01-26 12:18:40+09', TIMESTAMP '2010-01-26 12:45:40+09')
-	where taxi_id = 1;
+UPDATE taxi 
+SET traj = remove(traj, TIMESTAMP '2010-01-26 12:18:40+09', TIMESTAMP '2010-01-26 12:45:40+09')
+WHERE taxi_id = 1;
+
+-- new statement
+UPDATE taxi 
+SET traj = remove(traj, 'PERIOD( 5001, 5003)' )
+WHERE taxi_id = 1;
 </pre>
 
 
 ## Update GPS Stream or Partial Trajectory in a Moving Object
 <pre>
 --modify 테스트
-update taxi set traj = modify(traj, tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9'))
-	where taxi_id = 1;
+UPDATE taxi 
+SET traj = modify(traj, tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9'))
+WHERE taxi_id = 1;
 
 --modify(trajectory, tpoint[]) 테스트
 update taxi set traj = modify(traj, ARRAY[ (tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9') ),
