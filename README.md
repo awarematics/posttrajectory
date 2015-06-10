@@ -57,69 +57,66 @@ select * from taxi;
 ## Append GPS Stream or a Trajectort in a Moving Object
 <pre>
 -- append(trajcetory, tpoint[]) 테스트 4개만 추가
-UPDATE taxi 
-SET traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
-					   ( tpoint(st_point(1320, 1220),TIMESTAMP '2010-01-26 15:25:40+09') ), 
-					   ( tpoint(st_point(1405, 1175),TIMESTAMP '2010-01-26 15:29:40+09') ), 
-					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )  
+ 
 WHERE taxi_id = 1;
 
-## new update statement
+-- new update statement
 UPDATE taxi 
 SET traj = append(traj, 'MPOINT (1510, 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
 WHERE taxi_id = 1;
 
+-- To be deprecated
+UPDATE taxi 
+SET traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
+					   ( tpoint(st_point(1320, 1220),TIMESTAMP '2010-01-26 15:25:40+09') ), 
+					   ( tpoint(st_point(1405, 1175),TIMESTAMP '2010-01-26 15:29:40+09') ), 
+					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )
 </pre>
 
 ## Remove GPS Stream or Partial Trajectory in a Moving Object
 <pre>
--- reomve 테스트 
---3번째 row의 값 5개 삭제
-UPDATE taxi 
-SET traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09'
-WHERE taxi_id = 1;
+-- reomve 
 
 -- new statement
+UPDATE taxi 
+SET traj = remove(traj, 'PERIOD( TIMESTAMP( 2010-01-26 12:33:40+09), TIMESTAMP(2010-01-26 12:37:40+09) )' )
+WHERE taxi_id = 1;
+
 UPDATE taxi 
 SET traj = remove(traj, 'PERIOD( 5001, 5003)' )
 WHERE taxi_id = 1;
 
--- 삭제 1row 이상을 삭제하게 되면(row에 tpseg값이 하나도 없게되면) row를 삭제해주는 실험
+-- To be deprecated
 UPDATE taxi 
-SET traj = remove(traj, TIMESTAMP '2010-01-26 12:18:40+09', TIMESTAMP '2010-01-26 12:45:40+09')
-WHERE taxi_id = 1;
-
--- new statement
-UPDATE taxi 
-SET traj = remove(traj, 'PERIOD( 5001, 5003)' )
+SET traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
 WHERE taxi_id = 1;
 </pre>
 
 
 ## Update GPS Stream or Partial Trajectory in a Moving Object
 <pre>
---modify 테스트
+-- new statement
+-- if it is needed the point to be changed at the specific time, 
+-- modify ( traj, point, atTimeCondition )
 UPDATE taxi 
-SET traj = modify(traj, tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9'))
+SET traj = modify(traj, st_point(1000, 1000), 'TIMESTAMP(2010-01-26 15:40:40+9)');
 WHERE taxi_id = 1;
 
---modify(trajectory, tpoint[]) 테스트
+-- new statement
+-- modify(trajectory, MPoint, duringPeriodCondition ) 테스트
+update taxi set traj = modify(traj, 'MPOINT( 1000 1000 5005, 1200 1100 5006, 1400 1050 5007, 2000 2000 5008 )', 
+                                    'PERIOD( 5005, 5008 )');
+
+-- To be deprecated
+-- modify(trajectory, tpoint[])
 update taxi set traj = modify(traj, ARRAY[ (tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9') ),
 					   (tpoint(st_point(1200, 1100), TIMESTAMP '2010-01-26 15:46:40+9') ),
 					   (tpoint(st_point(1400, 1050), TIMESTAMP '2010-01-26 15:49:40+9') ),
 					   (tpoint(st_point(2000, 2000), TIMESTAMP '2010-01-26 15:57:40+9') ) ]::tpoint[] )
 	where taxi_id = 1;
 
-
-update taxi set traj = modify(traj, ARRAY[ (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:40:40+9') ),
-					   (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:46:40+9') ),
-					   (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:49:40+9') ),
-					   (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:57:40+9') ) ]::tpoint[] )
-	where taxi_id = 1;
-
-
--- modify(trajectory, timestamp, timestamp, tpoint[]) 테스트
--- 사용자 입력시간과 tpoint[]의 시간이 contain 되지 않을때
+-- to be deprecated
+-- modify(trajectory, timestamp, timestamp, tpoint[]) 
 update taxi set traj = modify(traj, TIMESTAMP '2010-01-26 14:00:40+9', TIMESTAMP '2010-01-26 14:03:40+9',
 			      ARRAY[ (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:00:40+9') ),
 			             (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:01:40+9') ),
@@ -128,41 +125,52 @@ update taxi set traj = modify(traj, TIMESTAMP '2010-01-26 14:00:40+9', TIMESTAMP
 	where taxi_id = 1;
 
 
--- 시작시간과 끝시간, tpoint[]값을 줬을때 modify
-update taxi set traj = modify(traj, TIMESTAMP '2010-01-26 15:00:40+9', TIMESTAMP '2010-01-26 15:03:40+9',
-			      ARRAY[ (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:00:40+9') ),
-			             (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:01:40+9') ),
-				     (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:02:40+9') ),
-				     (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:03:40+9') ) ]::tpoint[] )
-	where taxi_id = 1;
-
 </pre>
 
 
 ## Slicing Trjactories
 <pre>
-select slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+select slice( traj, 'TIMESTAMP(2011-02-20 17:13:00)', 'TIMESTAMP(2011-02-20 17:26:00)')
+from taxi;
+
+select slice( traj, 'PERIOD(5003, 5005)')
 from taxi;
 </pre>
 
 ## Spatial Slicing 
 <pre>
-select stay(traj, 'LINESTRING(15000 18000, 30000 30000)') 
+select slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')) 
 from taxi;
 </pre>
 
 ## Spatial Slicing and Temporal Slicing
 <pre>
-select slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), stay(traj, 'LINESTRING(15000 18000, 30000 30000)')
+SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), slice(traj, 'POLYGON(15000 18000, 30000 30000, 15000 18000)')
 from taxi;
+
+SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+from taxi
+where T_OVERLAP( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
+
+SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+from taxi
+where T_OVERLAP( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 )');
 </pre>
 
 ## Enter Function and Predicates
 <pre>
-select aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) 
+SELECT TT_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) 
 from taxi;
 
-select slice( traj, st_geometry('BOX(17 6, 29 31)'::box2d) ),  aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) )
+SELECT taxi_id, taxi_number
+from taxi
+WHERE TT_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)'));
+
+SELECT taxi_id, taxi_number
+from taxi
+WHERE TT_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)', 'PERIOD( 5003, 5008 )'));
+
+SELECT slice( traj, st_geometry('BOX(17 6, 29 31)'::box2d) ),  aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) )
 from taxi;
 
 </pre>
