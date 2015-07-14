@@ -38,13 +38,14 @@ insert into taxi values(5, '57NU2005', 'Optima', 'hongkd7');
 
 ## Append GPS or a Trajectory Point in a Moving Object
 <pre>
-UPDATE taxi 
-SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
-WHERE  taxi_id = 1;
-
 ## MPOINT is ( x y t, x y t, ...) = (float float long, float float long, ...)
 UPDATE taxi 
 SET    traj = append(traj, 'MPOINT( 100 100 5000, 150 150 5001)') 
+WHERE  taxi_id = 1;
+
+## To be deprecated
+UPDATE taxi 
+SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
 WHERE  taxi_id = 1;
 </pre>
 
@@ -56,9 +57,6 @@ select * from taxi;
 
 ## Append GPS Stream or a Trajectort in a Moving Object
 <pre>
--- append(trajcetory, tpoint[]) 테스트 4개만 추가
- 
-WHERE taxi_id = 1;
 
 -- new update statement
 UPDATE taxi 
