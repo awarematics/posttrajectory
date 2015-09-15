@@ -55,7 +55,7 @@ WHERE  taxi_id = 1;
 select * from taxi;
 </pre>
 
-## Append GPS Stream or a Trajectort in a Moving Object
+## Append GPS Stream or a Trajectories in a Moving Object
 <pre>
 
 -- new update statement
