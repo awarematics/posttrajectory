@@ -105,6 +105,43 @@ DECLARE
 $delete_mpoint_seg$ LANGUAGE plpgsql;
 
 
+
+CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
+DECLARE
+	segtable_oid		text;
+	segcolumn_name		text;
+	sequence_name		text;
+	moid			text;
+	
+ BEGIN
+	
+	--segtable_oid를 가져온다. 
+	execute 'select f_segtableoid from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
+	into segtable_oid;
+	
+	--segcolumn_name를 가져온다.
+	execute 'select f_trajectory_column from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
+	into segcolumn_name;
+	
+	--sequence_name를 가져온다.
+	execute 'select f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
+	into sequence_name;
+	
+	--sequence_name를 이용하여 삽입할 sequence를 결정한다.
+	execute 'select nextval(' || sequence_name[0]["f_sequence_name"] || ')'
+	into moid;
+		
+	RAISE NOTICE 'test : % : end.',moid[0]["nextval"];
+	
+	--user maked column(trajectoryColumn)의 값을 삽입해준다.
+	NEW.segcolumn_name[0]['f_trajectory_column'] = (segtable_oid[0]["f_segtableoid"], moid[0]["nextval"]);
+		
+	return NULL;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
 -- AddTrajectoryColumn 함수 array 크기를 지정해주지 않는다.
 CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
 						integer, character varying, integer)
