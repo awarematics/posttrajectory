@@ -6,7 +6,8 @@
 #include "access/gist.h"
 #include "access/skey.h"
 
-#include "lwgeom_log.h"   
+#include "lwgeom_log.h"  
+//#include "gserialized_gist.h"  
 #include "WTBtree_gist.h"
 
 #define WTBtree_LessStrategyNumber		1
@@ -15,6 +16,9 @@
 #define WTBtree_GreaterEqualStrategyNumber	4
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
+
+#define KEY_SIZE 12
+
 
 PG_MODULE_MAGIC;
 
@@ -39,140 +43,60 @@ PG_FUNCTION_INFO_V1(WTBtree_union);
 PG_FUNCTION_INFO_V1(WTBtree_same);
 
 
-// wkey를 Leaf 노드 키(LKEY)로 변환
-WTB_KEY_IN_LKey* range_key_to_node_key(wkey w)
-{
-	//printf("FN(range_key_to_node_key) : wkey is %s\n", w);
-
-	WTB_KEY_IN_LKey *LKEY;
-	char temp[35];
-
-	strcpy(temp, w);
-
-	//printf("w size is %d\n", strlen(w));
-	//printf("FN(range_key_to_node_key) : w[0] is %c\n", *w);
-
-	//if (*w == 'l')
-	//{
-		//printf("FN(range_key_to_node_key) :	if (*w == 'l')\n");
-		LKEY = (WTB_KEY_IN_LKey *)palloc(sizeof(WTB_KEY_IN_LKey));
-		memcpy((char*)LKEY, (char*)temp, sizeof(WTB_KEY_IN_LKey));		
-	//}
-
-	return LKEY;
-}
 
 // wkey를 중간 노드 키(IKEY)로 변환
-WTB_KEY_IN_IKey* node_key_to_range_key(wkey w)
+INTERNAL_KEY* leafKey_to_internaKey(LEAF_KEY w)
 {
-	WTB_KEY_IN_IKey *IKEY;
-	//printf("FN(node_key_to_range_key) : wkey is %s\n", w);
+	INTERNAL_KEY *ikey;
 
-	char temp[35];
+	ikey = palloc(sizeof(INTERNAL_KEY));
 
-	//printf("FN(node_key_to_range_key) : wkey is %s\n", w);
+	memcpy(ikey->lower, w, KEY_SIZE); 
+	memcpy(ikey->upper, w, KEY_SIZE);
 
-	strcpy(temp, w);
-
-	//printf("FN(node_key_to_range_key) : temp is %s\n", temp);
-
-	char lower[15], upper[15];
-	//printf("FN(node_key_to_range_key) : wkey is %s\n", w);
-	int i;
-	for (i=0; i<15; i++)
-	{
-		if (i==14) {
-			lower[i] = '\0';
-			upper[i] = '\0';
-		} else {
-			lower[i] = temp[i];
-			upper[i] = temp[i];
-		}
-
-	}
-	//printf("FN(node_key_to_range_key) : wkey is %s\n", w);
-	strcpy(IKEY->lower, lower); 
-	strcpy(IKEY->upper, upper);
-
-	//printf("FN(node_key_to_range_key) : IKEY->lower is %s\n", IKEY->lower);
-	//printf("FN(node_key_to_range_key) : IKEY->upper is %s\n", IKEY->upper);
-/*
-	if (temp[1]=='i') // Intermediate Node
-	{
-		int i;
-
-		for (i=0; i<12; i++)
-		{
-			strcpy(IKEY->lower, temp); 
-			strcpy(IKEY->upper, temp);
-		}
-	} else 
-	{
-		strcpy(IKEY->lower, temp); 
-		strcpy(IKEY->upper, temp);
-	}
-*/	
-	return IKEY;
+	return ikey;
 }
 
-wkey* range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
-{
-	wkey *w;
-	char temp[25];
-	
-	temp[0] = 'i';
-
-	strcpy(temp, ikey->lower);
-	strcat(temp, ikey->upper);	
-
-/*
-	int i;
-
-	for (i=0; i<12; i++)
-		{
-			temp[i+1] = ikey->lower[i];
-			temp[i+13] = ikey->upper[i];
-		}
-*/
-		
-	w = (wkey *)palloc(sizeof(wkey));
-	memcpy((char*)w, (char*)temp, sizeof(wkey));		
-		
-	return w;
-}
 
 bool char_gt(const void *query, const char *key)
 {	
+	printf("char_gt");
 	bool		result;
 
-	result = (strcmp(query, key) > 0);
+	if (memcmp(query, key, KEY_SIZE) > 0) {
+		result = true;
+	} else {
+		result = false;
+	}
 
 	return result;
 }
 
 bool char_ge(const void *query, const char *key)
 {	
+	printf("char_ge");
 	bool		result;
 
-	result = (strcmp(query, key) >= 0);
+	if (memcmp(query, key, KEY_SIZE) >= 0) {
+		result = true;
+	} else {
+		result = false;
+	}
 
 	return result;
 }
 
 bool char_eq(const void *query, const char *key)
 {	
+	printf("char_eq");
 	bool		result;
-	int		len1, len2;
-
-	len1 = strlen(query);
-	len2 = strlen(key);
 	
-	if (len1 != len2)
+	if (memcmp(query, key, KEY_SIZE) != 0)
 	{
 		result = false;
 	} else
 	{		
-		result = (strcmp(query, key) == 0);
+		result = true;
 	}
 	
 	return result;
@@ -180,27 +104,38 @@ bool char_eq(const void *query, const char *key)
 
 bool char_lt(const void *query, const char *key)
 {	
+	printf("char_lt");
 	bool		result;
 
-	result = (strcmp(query, key) < 0);
+	if (memcmp(query, key, KEY_SIZE) < 0) {
+		result = true;
+	} else {
+		result = false;
+	}
 
 	return result;
 }
 
 bool char_le(const void *query, const char *key)
 {	
+	printf("char_le");
 	bool		result;
 
-	result = (strcmp(query, key) <= 0);
+	if (memcmp(query, key, KEY_SIZE) <= 0) {
+		result = true;
+	} else {
+		result = false;
+	}
 
 	return result;
 }
 
 int char_cmp(const void *query, const char *key)
 {	
+	printf("char_cmp");
 	int		result;
 
-	result = strcmp(query, key);
+	result = memcmp(query, key, KEY_SIZE);
 
 	return result;
 }
@@ -219,11 +154,11 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 	   rather than being supplied as part of the operator class definition */
 	bool	   *recheck = (bool *) PG_GETARG_POINTER(4);
 
-	wkey key;
+	LEAF_KEY key;
 
-	strcpy(key, DatumGetPointer(entry->key));
+	memcpy(key, DatumGetPointer(entry->key), KEY_SIZE);
 
-	WTB_KEY_IN_IKey *ikey = node_key_to_range_key(key);	
+	INTERNAL_KEY *ikey = leafKey_to_internaKey(key);	
 
 	/* We set recheck to false to avoid repeatedly pulling every "possibly matched" geometry
 	   out during index scans. For cases when the geometries are large, rechecking
@@ -275,65 +210,25 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 }
 
 void
-WTBtree_key_union(Datum *u, wkey wkey_cur)
+WTBtree_key_union(Datum *u, LEAF_KEY leaf_cur)
 {	
 	//printf("------------------key_union\n");
 
-	//printf("\nwkey_cur is %s\n", wkey_cur);
-
-	WTB_KEY_IN_IKey *cur_ikey;
-	WTB_KEY_IN_IKey *new_ikey;
-
-	char temp[35];
-
-	strcpy(temp, wkey_cur);
-
-	//printf("------------------temp : %s\n", temp);
-	//printf("------------------key_union_1\n");
-
-	char lower[15], upper[15];
-
-	int i;
-	for (i=0; i<15; i++)
-	{
-		if (i==14) {
-			lower[i] = '\0';
-			upper[i] = '\0';
-		} else {
-			lower[i] = temp[i];
-			upper[i] = temp[i];
-		}
-
-	}
 
 	if (DatumGetPointer(u))
 	{		
-		//printf("------------------key_union_2\n");
+		
+		*u = PointerGetDatum(leaf_cur);
 
-		WTB_KEY_IN_IKey *ikey;
-
-		//printf("------------------key_union_3\n");
-
-//		strcpy(ikey->lower, lower);
-		//printf("------------------ikey->lower : %s\n", ikey->lower);
-
-		//printf("------------------key_union_4\n");
-
-	//	strcpy(ikey->upper, lower);
-
-		*u = PointerGetDatum(wkey_cur);
-
-		//printf("------------------key_union_5\n");
+	//	printf("------------------key_union_5\n");
 	}
 	else
 	{
 		//printf("------------------key_union_8\n");
-		WTB_KEY_IN_IKey *ikey;
+		INTERNAL_KEY *ikey;
 
-		//strcpy(ikey->lower, wkey_cur);
-		//strcpy(ikey->upper, wkey_cur);
 
-		*u = PointerGetDatum(wkey_cur);
+		*u = PointerGetDatum(leaf_cur);
 		//printf("------------------key_union_9\n");
 	}
 }
@@ -346,21 +241,21 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	int *sizep = (int *) PG_GETARG_POINTER(1); /* Size of the return value */
 	int	numranges, i;
 	Datum out;
-	wkey wkey_cur;
+	LEAF_KEY leaf_cur;
 	
 	numranges = entryvec->n;
 	
-	strcpy(wkey_cur, DatumGetPointer(entryvec->vector[0].key));
+	memcpy(leaf_cur, DatumGetPointer(entryvec->vector[0].key), KEY_SIZE);
 
 	//POSTGIS_DEBUGF(4, "numranges is %d", numranges);
 	
 	for ( i = 1; i < numranges; i++ )
 	{
-		strcpy(wkey_cur, DatumGetPointer(entryvec->vector[i].key));
+		memcpy(leaf_cur, DatumGetPointer(entryvec->vector[i].key), KEY_SIZE);
 		//WTBtree_key_union(&out, wkey_cur);
 	}
 	
-	*sizep = sizeof(wkey);
+	*sizep = sizeof(LEAF_KEY);
 	
 	PG_RETURN_POINTER(out);
 }
@@ -368,16 +263,17 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 
 Datum WTBtree_compress(PG_FUNCTION_ARGS)
 {
-	printf("------------------compress\n");
+	//printf("------------------compress\n");
 
 	GISTENTRY *entry_in = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY *entry_out = NULL;
-	wkey leaf;
-	WTB_KEY_IN_LKey *LKEY;
 
-/*
+	LEAF_KEY leaf;
+	//WTB_KEY_IN_LEAF_KEY *LEAF_KEY;
+
+
 printf("GISTENTRY size : %d\n", sizeof(GISTENTRY));
-printf("Datum size : %d\n", sizeof(((GISTENTRY*)0)->key));
+printf("entry_out->key size : %d\n", sizeof(entry_out->key));
 printf("Relation size : %d\n", sizeof(Relation));
 printf("Page size : %d\n", sizeof(Page));
 printf("OffsetNumber size : %d\n", sizeof(OffsetNumber));
@@ -385,12 +281,31 @@ printf("bool size : %d\n", sizeof(bool));
 
 printf("GIST_SPLITVEC size : %d\n", sizeof(GIST_SPLITVEC));
 printf("GistEntryVector size : %d\n", sizeof(GistEntryVector));
-*/
+
+// GSERIALIZED *gpart;
+
+if (VARATT_IS_EXTENDED(entry_in->key))
+{
+	printf("VARATT_IS_EXTENDED");
+	//gpart = (GSERIALIZED*)PG_DETOAST_DATUM_SLICE(gsdatum, 0, 8 + sizeof(LEAF_KEY));
+} else
+{	
+	printf("NOT VARATT_IS_EXTENDED");
+//	gpart = (GSERIALIZED*)PG_DETOAST_DATUM(gsdatum);
+}
+
+//memcpy(tmp, DatumGetPointer(PG_DETOAST_DATUM(entry_in->key)), 12);
+
+//printf("entry_in 16진수 값 : %x, key : %s\n", DatumGetPointer(PG_DETOAST_DATUM(entry_in->key))[0], tmp);
+printf("strlen(entry_in->key) : %d\n", strlen(DatumGetPointer(entry_in->key)));
 
 	// Leaf 키가 아닐 때,
 	if ( ! entry_in->leafkey )
-	{		
+	{		 
 		PG_RETURN_POINTER(entry_in);
+	}  
+	if (VARATT_IS_EXTENDED(entry_in->key)) {
+		printf("if (VARATT_IS_EXTENDED(entry_in->key)) {\n\n");
 	}
 
 	entry_out = palloc(sizeof(GISTENTRY));
@@ -402,40 +317,32 @@ printf("GistEntryVector size : %d\n", sizeof(GistEntryVector));
 		
 		PG_RETURN_POINTER(entry_out);
 	}
+
 	//printf("entry_in->key is %s\n", entry_in->key);
 
+	//memcpy(leaf, *DatumGetPointer(entry_in->key)[0], KEY_SIZE);
+	//memcpy(leaf, "1234", KEY_SIZE);
+
 /*
-char *test;
-test = (char *)malloc(10);
+	printf("leaf is %s\n", leaf);
 
-memcpy(test, DatumGetPointer(entry_in->key), 10);
-
-	printf("test is %s\n", test);
-
-int i;
-for (i = 0; i<11; i++)
-{
-	printf("test is %x\n", test[i]);
-}
-
-for (i = 0; i<11; i++)
-{
-	printf("DatumGetPointer(entry_in->key) is %x\n", DatumGetPointer(entry_in->key)[i]);
-}
+	int i;
+	for (i = 0; i<14; i++)
+	{
+		printf("leaf is %x\n", leaf[i]);
+	}
 */
 
-	strcpy(leaf, DatumGetPointer(entry_in->key));
-
-	//printf("leaf is %s\n", leaf);
-
-	//*(leaf+0) = 'l';
-
-	LKEY = range_key_to_node_key(leaf);
+	//LEAF_KEY = range_key_to_node_key(leaf);
 
 	/* Prepare GISTENTRY for return. */
-	gistentryinit(*entry_out, PointerGetDatum(LKEY),
+
+	gistentryinit(*entry_out, PointerGetDatum(leaf),
 	              entry_in->rel, entry_in->page, entry_in->offset, TRUE);
 
+printf("entry_out 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[0], entry_out->key);
+printf("entry_out 12번째 자리 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[11], entry_out->key);
+printf("entry_out 13번째 자리 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[12], entry_out->key);
 	PG_RETURN_POINTER(entry_out);
 }
 
@@ -446,39 +353,25 @@ Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 }
 
  int
-WTBtree_node_cp_len(wkey w)
+WTBtree_node_cp_len(LEAF_KEY w)
 {
 //	WTB_KEY_IN_IKey *ikey = node_key_to_range_key(w);
 
-	char temp[35];
+	char temp[KEY_SIZE];
 
 	//printf("FN(WTBtree_node_cp_len) : wkey is %s\n", w);
 
-	strcpy(temp, w);
+	memcpy(temp, w, KEY_SIZE);
 
 //	printf("FN(WTBtree_node_cp_len) : temp is %s\n", temp);
 
-	char lower[15], upper[15];
-
-	int i;
-	for (i=0; i<15; i++)
-	{
-		if (i==14) {
-			lower[i] = '\0';
-			upper[i] = '\0';
-		} else {
-			lower[i] = temp[i];
-			upper[i] = temp[i];
-		}
-	}
-
-	i = 0;
+	int 		i = 0;
 	int		l = 0;
-	int		t1len = VARSIZE(lower) - VARHDRSZ;
-	int		t2len = VARSIZE(upper) - VARHDRSZ;
+	int		t1len = VARSIZE(temp) - VARHDRSZ;
+	int		t2len = VARSIZE(temp) - VARHDRSZ;
 	int		ml = Min(t1len, t2len);
-	char	   *p1 = VARDATA(lower);
-	char	   *p2 = VARDATA(upper);
+	char	   *p1 = VARDATA(temp);
+	char	   *p2 = VARDATA(temp);
 
 	if (ml == 0)
 		return 0;
@@ -509,13 +402,17 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 	GISTENTRY  *o = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY  *n = (GISTENTRY *) PG_GETARG_POINTER(1);
 	float	   *result = (float *) PG_GETARG_POINTER(2);
-	wkey origKey, newKey;
+	LEAF_KEY origKey, newKey;
 	
-	strcpy(origKey, DatumGetPointer(o->key));
-	strcpy(newKey, DatumGetPointer(n->key));
+	printf("---------o->key : %s\n", o->key);
 
-	//printf("---------origkey : %s\n", origKey);
-	//printf("---------newkey : %s\n", newKey);
+	memcpy(origKey, DatumGetPointer(o->key), KEY_SIZE);
+	memcpy(newKey, DatumGetPointer(n->key), KEY_SIZE);
+
+printf("%x\n", origKey[0]);
+printf("%x\n", origKey[1]);
+	printf("---------origkey : %s\n", origKey);
+	printf("---------newkey : %s\n", newKey);
 
 	if ( (origKey == NULL) && (newKey == NULL) )
 	{		
@@ -549,8 +446,8 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 Datum
 WTBtree_same(PG_FUNCTION_ARGS)
 {
-	wkey *w1 = (wkey *)PG_GETARG_POINTER(0);
-	wkey *w2 = (wkey *)PG_GETARG_POINTER(1);
+	LEAF_KEY *w1 = (LEAF_KEY *)PG_GETARG_POINTER(0);
+	LEAF_KEY *w2 = (LEAF_KEY *)PG_GETARG_POINTER(1);
 	bool *result = (bool *) PG_GETARG_POINTER(2);
 
 	
@@ -572,10 +469,12 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	
 	int nbytes;
 		
-	wkey cur, unionL, unionR;
+	LEAF_KEY cur, unionL, unionR;
 
+	// sizeof(OffsetNumber) : 2
+	// sizeof(OffsetNumber*) : 8
 	nbytes = (maxoff + 1) * sizeof(OffsetNumber);	
-	
+
 	v->spl_left = (OffsetNumber *) palloc(nbytes);
 	left = v->spl_left;
 	v->spl_right = (OffsetNumber *) palloc(nbytes);	
@@ -585,51 +484,59 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	v->spl_nleft = 0;
 	v->spl_nright = 0;
 
+	printf("left : %p\n", left);
+	printf("right : %p\n", right);
+
 	printf("Before sorting\n");
+
+
+printf("16진수 값 : %x, key : %s\n", DatumGetPointer(entryvec->vector[1].key)[0], entryvec->vector[1].key);
+/*
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
 		printf("%d, key : %s\n", i, entryvec->vector[i].key);
 
 	}
+*/
 
 	/* Bubble sort */
 
 	char *tmp_entrykey;
-	tmp_entrykey = (char *)malloc(12);
+	tmp_entrykey = (char *)palloc(KEY_SIZE);
 
 	for (i = FirstOffsetNumber; i < maxoff; i = OffsetNumberNext(i))
 	{
 		for (j = FirstOffsetNumber; j <= maxoff-j; j = OffsetNumberNext(j))
 		{
-			if (memcmp(DatumGetPointer(entryvec->vector[j].key), DatumGetPointer(entryvec->vector[j+1].key), 12) > 0)
+			if (memcmp(DatumGetPointer(entryvec->vector[j].key), DatumGetPointer(entryvec->vector[j+1].key), KEY_SIZE) > 0)
 			{
-					memcpy(tmp_entrykey, DatumGetPointer(entryvec->vector[j].key), 12);
-					memcpy(DatumGetPointer(entryvec->vector[j].key), DatumGetPointer(entryvec->vector[j+1].key), 12);
-					memcpy(DatumGetPointer(entryvec->vector[j+1].key), tmp_entrykey, 12);
+					memcpy(tmp_entrykey, DatumGetPointer(entryvec->vector[j].key), KEY_SIZE);
+					memcpy(DatumGetPointer(entryvec->vector[j].key), DatumGetPointer(entryvec->vector[j+1].key), KEY_SIZE);
+					memcpy(DatumGetPointer(entryvec->vector[j+1].key), tmp_entrykey, KEY_SIZE);
 			}
 		}
 	}
 
 	printf("After sorting\n");
+/*
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
 		printf("%d, key : %s\n", i, entryvec->vector[i].key);
 
 	}
+*/
+	printf("entryvec->n is %d\n", entryvec->n);
+	printf("maxoff is %d\n", maxoff);
 
-	//printf("entryvec->n is %d\n", entryvec->n - 1);
-	//printf("maxoff is %d\n", maxoff);
-	
-	//printf("------------------test 1\n");
-
-
+	// FirstOffsetNumber : 1
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
 		//printf("------------------test 4\n");
 
-		strcpy(cur, DatumGetPointer(entryvec->vector[i].key));
+		memcpy(cur, DatumGetPointer(entryvec->vector[i].key), KEY_SIZE);
 
-		//printf("------------------test 5\n");
+
+		//printf("cur : %s\n", cur);
 
 		if (i <= (maxoff - FirstOffsetNumber + 1) / 2)
 		{
@@ -637,7 +544,7 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 
 			// Left node
 			WTBtree_key_union(&v->spl_ldatum, cur);
-
+//printf("left cur : %s\n", &v->spl_ldatum);
 			//printf("---------left node 1\n");
 			//printf("---------v->spl_nleft : %d\n", v->spl_nleft);
 			//printf("---------i : %d\n", i);
@@ -654,7 +561,7 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 
 			// Right node
 			WTBtree_key_union(&v->spl_rdatum, cur);
-		
+	//	printf("right cur : %s\n", &v->spl_rdatum);
 			//printf("---------right node 1\n");
 			//printf("---------v->spl_nright : %d\n", v->spl_nright);
 			//printf("---------i : %d\n", i);
@@ -666,7 +573,13 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 			//printf("---------right node 3\n");
 		}
 	}
-	
+	/*
+for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
+	{
+
+printf("DatumGetPointer(entryvec->vector[%d].key) : %s\n",i, DatumGetPointer(entryvec->vector[i].key));
+}
+*/
 	
 	PG_RETURN_POINTER(v);
 }
