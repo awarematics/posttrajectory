@@ -3,7 +3,7 @@
 
 CREATE TABLE wtraj (
 	id int,
-	wk char(10)
+	wk char(12)
 );
 
 
@@ -45,57 +45,57 @@ LANGUAGE C IMMUTABLE STRICT;
 ----------------------------------------------------------------------------------
 -- OPERATOR
 ----------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION wtb_lt(query char(10), wk char(10))
+CREATE OR REPLACE FUNCTION wtb_lt(query char(35), wk char(35))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_lt'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_le(query char(10), wk char(10))
+CREATE OR REPLACE FUNCTION wtb_le(query char(35), wk char(35))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_le'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_gt(query char(10), wk char(10))
+CREATE OR REPLACE FUNCTION wtb_gt(query char(35), wk char(35))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_gt'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_ge(query char(10), wk char(10))
+CREATE OR REPLACE FUNCTION wtb_ge(query char(35), wk char(35))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_ge'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_eq(query char(10), wk char(10))
+CREATE OR REPLACE FUNCTION wtb_eq(query char(35), wk char(35))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_eq'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
 CREATE OPERATOR < (
-	LEFTARG = char(10), RIGHTARG = char(10), PROCEDURE = wtb_lt,
+	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_lt,
 	COMMUTATOR = '<'
 );
 
 CREATE OPERATOR <= (
-	LEFTARG = char(10), RIGHTARG = char(10), PROCEDURE = wtb_le,
+	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_le,
 	COMMUTATOR = '<='
 );
 
 CREATE OPERATOR = (
-	LEFTARG = char(10), RIGHTARG = char(10), PROCEDURE = wtb_eq,
+	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_eq,
 	COMMUTATOR = '='
 );
 
 CREATE OPERATOR >= (
-	LEFTARG = char(10), RIGHTARG = char(10), PROCEDURE = wtb_ge,
+	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_ge,
 	COMMUTATOR = '>='
 );
 CREATE OPERATOR > (
-	LEFTARG = char(10), RIGHTARG = char(10), PROCEDURE = wtb_gt,
+	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_gt,
 	COMMUTATOR = '>'
 );
 
 CREATE OPERATOR CLASS WTBtree_gist_ops
-DEFAULT FOR TYPE char(10) USING gist
+DEFAULT FOR TYPE char(35) USING gist
 AS
 	OPERATOR	1	<  ,
 	OPERATOR	2	<= ,
