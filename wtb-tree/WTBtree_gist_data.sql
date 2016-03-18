@@ -1,44 +1,11 @@
 
-delete from wtraj;
-
-select * from wtraj;
-
-CREATE or replace FUNCTION insert_wtraj() RETURNS integer AS $$
-DECLARE
-
-wk varchar;
-j integer;
-
-BEGIN
-
-
-FOR i IN 1..600 LOOP
-
-j = i;
-
-if (j>10)
-then
-	j = 1;
-end if;
-
-wk = j;
-
-EXECUTE 'INSERT INTO wtraj values(' || i || ', wkeyIn(' || quote_literal(wk) || '))';
-
-END LOOP;
-
-RETURN 1;
-END;
-$$ LANGUAGE plpgsql;
-
-select insert_wtraj();
 
 
 
-drop function insert_wtraj();
+insert into wtraj values (1, wkeyIn('kunsan.ac.kr.1'), 'kunsan.ac.kr.1');
+insert into wtraj values (2, wkeyIn('kunsan.ac.kr.2'), 'kunsan.ac.kr.2');
+insert into wtraj values (3, wkeyIn('kunsan.ac.kr.3'), 'kunsan.ac.kr.3');
+insert into wtraj values (4, wkeyIn('kunsan.ac.kr.4'), 'kunsan.ac.kr.4');
+insert into wtraj values (5, wkeyIn('kunsan.ac.kr.5'), 'kunsan.ac.kr.5');
 
 
-INSERT INTO wtraj values(2, wkeyIn('54'));
-
-
-select * from wtraj where wk = wkeyIn('12') and id = 1;
