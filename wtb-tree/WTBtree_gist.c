@@ -1,10 +1,12 @@
 
 
-#include <string.h>
+
+
 #include "postgres.h"
 
 #include "access/gist.h"
 #include "access/skey.h"
+#include "utils/builtins.h"
 
 #include "lwgeom_log.h"  
 //#include "gserialized_gist.h"  
@@ -17,7 +19,7 @@
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
 
-#define KEY_SIZE 12
+#define KEY_SIZE 13
 
 
 PG_MODULE_MAGIC;
@@ -260,18 +262,37 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(out);
 }
 
+GISTENTRY *
+WTBtree_var_compress(GISTENTRY *entry)
+{
+	GISTENTRY  *retval;
+
+	if (entry->leafkey)
+	{
+		LEAF_KEY	   *leaf = (LEAF_KEY *) DatumGetPointer(PG_DETOAST_DATUM(entry->key));
+
+		retval = palloc(sizeof(GISTENTRY));
+		gistentryinit(*retval, PointerGetDatum(leaf),
+					  entry->rel, entry->page,
+					  entry->offset, TRUE);
+	}
+	else
+		retval = entry;
+
+	return (retval);
+}
 
 Datum WTBtree_compress(PG_FUNCTION_ARGS)
 {
-	//printf("------------------compress\n");
+	printf("------------------compress\n");
 
 	GISTENTRY *entry_in = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY *entry_out = NULL;
 
-	LEAF_KEY leaf;
+	LEAF_KEY *leaf;
 	//WTB_KEY_IN_LEAF_KEY *LEAF_KEY;
 
-
+/*
 printf("GISTENTRY size : %d\n", sizeof(GISTENTRY));
 printf("entry_out->key size : %d\n", sizeof(entry_out->key));
 printf("Relation size : %d\n", sizeof(Relation));
@@ -281,46 +302,51 @@ printf("bool size : %d\n", sizeof(bool));
 
 printf("GIST_SPLITVEC size : %d\n", sizeof(GIST_SPLITVEC));
 printf("GistEntryVector size : %d\n", sizeof(GistEntryVector));
+*/
 
-// GSERIALIZED *gpart;
-
-if (VARATT_IS_EXTENDED(entry_in->key))
-{
-	printf("VARATT_IS_EXTENDED");
-	//gpart = (GSERIALIZED*)PG_DETOAST_DATUM_SLICE(gsdatum, 0, 8 + sizeof(LEAF_KEY));
-} else
-{	
-	printf("NOT VARATT_IS_EXTENDED");
-//	gpart = (GSERIALIZED*)PG_DETOAST_DATUM(gsdatum);
-}
 
 //memcpy(tmp, DatumGetPointer(PG_DETOAST_DATUM(entry_in->key)), 12);
 
 //printf("entry_in 16진수 값 : %x, key : %s\n", DatumGetPointer(PG_DETOAST_DATUM(entry_in->key))[0], tmp);
-printf("strlen(entry_in->key) : %d\n", strlen(DatumGetPointer(entry_in->key)));
 
-	// Leaf 키가 아닐 때,
-	if ( ! entry_in->leafkey )
+/*
+printf("entry_in->key : %s\n", DatumGetPointer(entry_in->key));
+printf("entry_in->key 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_in->key)[0], DatumGetPointer(entry_in->key));
+printf("strlen(entry_in->key) : %d\n", strlen(DatumGetPointer(entry_in->key)));
+*/
+
+printf("Leaf %d\n", entry_in->leafkey);
+
+	if (!entry_in->leafkey)
 	{		 
+		printf("Leaf is NOT!---------------------------------");
 		PG_RETURN_POINTER(entry_in);
 	}  
+
+printf("After Leaf  %d\n", entry_in->leafkey);
+	printf("entry_in->key is %s\n", entry_in->key);
+/*
 	if (VARATT_IS_EXTENDED(entry_in->key)) {
 		printf("if (VARATT_IS_EXTENDED(entry_in->key)) {\n\n");
 	}
-
-	entry_out = palloc(sizeof(GISTENTRY));
+*/
+//	entry_out = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 	
 	if ( DatumGetPointer(entry_in->key) == NULL )
 	{
+		printf("entry_in->key is NOT!---------------------------------");
 		gistentryinit(*entry_out, (Datum) 0, entry_in->rel,
 		              entry_in->page, entry_in->offset, FALSE);
 		
 		PG_RETURN_POINTER(entry_out);
 	}
 
-	//printf("entry_in->key is %s\n", entry_in->key);
+	printf("entry_in->key is %s\n", entry_in->key);
 
-	//memcpy(leaf, *DatumGetPointer(entry_in->key)[0], KEY_SIZE);
+//	leaf = (LEAF_KEY *) palloc(sizeof(LEAF_KEY));
+//	memcpy(leaf, DatumGetPointer(entry_in->key), KEY_SIZE);
+
+	printf("leaf is %s\n", leaf);
 	//memcpy(leaf, "1234", KEY_SIZE);
 
 /*
@@ -333,18 +359,35 @@ printf("strlen(entry_in->key) : %d\n", strlen(DatumGetPointer(entry_in->key)));
 	}
 */
 
-	//LEAF_KEY = range_key_to_node_key(leaf);
-
 	/* Prepare GISTENTRY for return. */
+	
+/*
+printf("entry_in : %s\n", entry_in->key);
+printf("DatumGetPointer(entry_in) : %s\n", DatumGetPointer(entry_in->key));
+*/
 
-	gistentryinit(*entry_out, PointerGetDatum(leaf),
+	Datum		d = DirectFunctionCall1(rtrim1, entry_in->key);
+
+	GISTENTRY trim;
+	//leaf = (LEAF_KEY) DatumGetPointer(entry_in->key);
+	gistentryinit(trim, d,
 	              entry_in->rel, entry_in->page, entry_in->offset, TRUE);
 
-printf("entry_out 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[0], entry_out->key);
+	entry_out = WTBtree_var_compress(&trim);
+
+	
+/*
+printf("DatumGetPointer(PG_DETOAST_DATUM(entry_in->key)) : %s\n", DatumGetPointer(PG_DETOAST_DATUM(entry_in->key)));
+printf("d : %s\n", DatumGetPointer(d));
+printf("entry_out : %s\n", entry_out->key);
+printf("entry_out 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[0], DatumGetPointer(entry_out->key));
 printf("entry_out 12번째 자리 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[11], entry_out->key);
 printf("entry_out 13번째 자리 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_out->key)[12], entry_out->key);
+*/
+
 	PG_RETURN_POINTER(entry_out);
 }
+
 
 Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 {
@@ -483,14 +526,14 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	v->spl_rdatum = PointerGetDatum(0);
 	v->spl_nleft = 0;
 	v->spl_nright = 0;
-
+/*
 	printf("left : %p\n", left);
 	printf("right : %p\n", right);
 
 	printf("Before sorting\n");
+*/
 
-
-printf("16진수 값 : %x, key : %s\n", DatumGetPointer(entryvec->vector[1].key)[0], entryvec->vector[1].key);
+//printf("16진수 값 : %x, key : %s\n", DatumGetPointer(entryvec->vector[1].key)[0], entryvec->vector[1].key);
 /*
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
@@ -498,9 +541,8 @@ printf("16진수 값 : %x, key : %s\n", DatumGetPointer(entryvec->vector[1].key)
 
 	}
 */
-
 	/* Bubble sort */
-
+/*
 	char *tmp_entrykey;
 	tmp_entrykey = (char *)palloc(KEY_SIZE);
 
@@ -516,8 +558,8 @@ printf("16진수 값 : %x, key : %s\n", DatumGetPointer(entryvec->vector[1].key)
 			}
 		}
 	}
-
-	printf("After sorting\n");
+*/
+//	printf("After sorting\n");
 /*
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
@@ -525,9 +567,10 @@ printf("16진수 값 : %x, key : %s\n", DatumGetPointer(entryvec->vector[1].key)
 
 	}
 */
+/*
 	printf("entryvec->n is %d\n", entryvec->n);
 	printf("maxoff is %d\n", maxoff);
-
+*/
 	// FirstOffsetNumber : 1
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
