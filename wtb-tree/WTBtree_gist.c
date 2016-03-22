@@ -8,8 +8,6 @@
 #include "access/skey.h"
 #include "utils/builtins.h"
 
-#include "lwgeom_log.h"  
-//#include "gserialized_gist.h"  
 #include "WTBtree_gist.h"
 
 #define WTBtree_LessStrategyNumber		1
@@ -19,7 +17,7 @@
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
 
-#define KEY_SIZE 13
+#define KEY_SIZE 12
 
 
 PG_MODULE_MAGIC;
@@ -290,7 +288,6 @@ Datum WTBtree_compress(PG_FUNCTION_ARGS)
 	GISTENTRY *entry_out = NULL;
 
 	LEAF_KEY *leaf;
-	//WTB_KEY_IN_LEAF_KEY *LEAF_KEY;
 
 /*
 printf("GISTENTRY size : %d\n", sizeof(GISTENTRY));
@@ -319,34 +316,25 @@ printf("Leaf %d\n", entry_in->leafkey);
 
 	if (!entry_in->leafkey)
 	{		 
-		printf("Leaf is NOT!---------------------------------");
+		printf("entry_in->leafKey is False!---------------------------------");
 		PG_RETURN_POINTER(entry_in);
 	}  
 
-printf("After Leaf  %d\n", entry_in->leafkey);
-	printf("entry_in->key is %s\n", entry_in->key);
-/*
-	if (VARATT_IS_EXTENDED(entry_in->key)) {
-		printf("if (VARATT_IS_EXTENDED(entry_in->key)) {\n\n");
-	}
-*/
-//	entry_out = (GISTENTRY *) palloc(sizeof(GISTENTRY));
-	
 	if ( DatumGetPointer(entry_in->key) == NULL )
 	{
-		printf("entry_in->key is NOT!---------------------------------");
+		printf("entry_in->key is NULL!--------------------------------------");
 		gistentryinit(*entry_out, (Datum) 0, entry_in->rel,
 		              entry_in->page, entry_in->offset, FALSE);
 		
 		PG_RETURN_POINTER(entry_out);
 	}
 
-	printf("entry_in->key is %s\n", entry_in->key);
+	//printf("entry_in->key is %s\n", entry_in->key);
 
 //	leaf = (LEAF_KEY *) palloc(sizeof(LEAF_KEY));
 //	memcpy(leaf, DatumGetPointer(entry_in->key), KEY_SIZE);
 
-	printf("leaf is %s\n", leaf);
+	//printf("leaf is %s\n", leaf);
 	//memcpy(leaf, "1234", KEY_SIZE);
 
 /*
@@ -369,7 +357,7 @@ printf("DatumGetPointer(entry_in) : %s\n", DatumGetPointer(entry_in->key));
 	Datum		d = DirectFunctionCall1(rtrim1, entry_in->key);
 
 	GISTENTRY trim;
-	//leaf = (LEAF_KEY) DatumGetPointer(entry_in->key);
+
 	gistentryinit(trim, d,
 	              entry_in->rel, entry_in->page, entry_in->offset, TRUE);
 
@@ -398,15 +386,9 @@ Datum WTBtree_decompress(PG_FUNCTION_ARGS)
  int
 WTBtree_node_cp_len(LEAF_KEY w)
 {
-//	WTB_KEY_IN_IKey *ikey = node_key_to_range_key(w);
-
 	char temp[KEY_SIZE];
 
-	//printf("FN(WTBtree_node_cp_len) : wkey is %s\n", w);
-
 	memcpy(temp, w, KEY_SIZE);
-
-//	printf("FN(WTBtree_node_cp_len) : temp is %s\n", temp);
 
 	int 		i = 0;
 	int		l = 0;
@@ -492,8 +474,6 @@ WTBtree_same(PG_FUNCTION_ARGS)
 	LEAF_KEY *w1 = (LEAF_KEY *)PG_GETARG_POINTER(0);
 	LEAF_KEY *w2 = (LEAF_KEY *)PG_GETARG_POINTER(1);
 	bool *result = (bool *) PG_GETARG_POINTER(2);
-
-	
 	
 	PG_RETURN_POINTER(result);
 }

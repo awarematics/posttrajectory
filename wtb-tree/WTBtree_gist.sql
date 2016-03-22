@@ -7,7 +7,7 @@ CREATE TABLE wtraj (
 );
 
 
-CREATE OR REPLACE FUNCTION WTBtree_consistent(internal,int4,int,oid,internal)
+CREATE OR REPLACE FUNCTION WTBtree_consistent(internal,bpchar,int2,oid,internal)
 RETURNS bool
 AS :'WTBtree_LIB','WTBtree_consistent'
 LANGUAGE C IMMUTABLE STRICT;
@@ -45,64 +45,64 @@ LANGUAGE C IMMUTABLE STRICT;
 ----------------------------------------------------------------------------------
 -- OPERATOR
 ----------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION wtb_lt(query char(35), wk char(35))
+CREATE OR REPLACE FUNCTION wtb_lt(query char(12), wk char(12))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_lt'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_le(query char(35), wk char(35))
+CREATE OR REPLACE FUNCTION wtb_le(query char(12), wk char(12))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_le'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_gt(query char(35), wk char(35))
+CREATE OR REPLACE FUNCTION wtb_gt(query char(12), wk char(12))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_gt'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_ge(query char(35), wk char(35))
+CREATE OR REPLACE FUNCTION wtb_ge(query char(12), wk char(12))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_ge'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION wtb_eq(query char(35), wk char(35))
+CREATE OR REPLACE FUNCTION wtb_eq(query char(12), wk char(12))
 RETURNS bool
 AS :'WTBtree_LIB', 'char_eq'
 LANGUAGE 'c' IMMUTABLE STRICT;
 
 CREATE OPERATOR < (
-	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_lt,
+	LEFTARG = char(12), RIGHTARG = char(12), PROCEDURE = wtb_lt,
 	COMMUTATOR = '<'
 );
 
 CREATE OPERATOR <= (
-	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_le,
+	LEFTARG = char(12), RIGHTARG = char(12), PROCEDURE = wtb_le,
 	COMMUTATOR = '<='
 );
 
 CREATE OPERATOR = (
-	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_eq,
+	LEFTARG = char(12), RIGHTARG = char(12), PROCEDURE = wtb_eq,
 	COMMUTATOR = '='
 );
 
 CREATE OPERATOR >= (
-	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_ge,
+	LEFTARG = char(12), RIGHTARG = char(12), PROCEDURE = wtb_ge,
 	COMMUTATOR = '>='
 );
 CREATE OPERATOR > (
-	LEFTARG = char(35), RIGHTARG = char(35), PROCEDURE = wtb_gt,
+	LEFTARG = char(12), RIGHTARG = char(12), PROCEDURE = wtb_gt,
 	COMMUTATOR = '>'
 );
 
 CREATE OPERATOR CLASS WTBtree_gist_ops
-DEFAULT FOR TYPE char(35) USING gist
+DEFAULT FOR TYPE bpchar USING gist
 AS
 	OPERATOR	1	<  ,
 	OPERATOR	2	<= ,
 	OPERATOR	3	=  ,
 	OPERATOR	4	>= ,
 	OPERATOR	5	>  ,
-	FUNCTION	1	WTBtree_consistent (internal, int4, int, oid, internal),
+	FUNCTION	1	WTBtree_consistent (internal, bpchar, int2, oid, internal),
 	FUNCTION	2	WTBtree_union (internal, internal),
 	FUNCTION	3	WTBtree_compress (internal),
 	FUNCTION	4	WTBtree_decompress (internal),
