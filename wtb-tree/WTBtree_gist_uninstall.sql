@@ -1,25 +1,7 @@
-
+﻿
 DROP OPERATOR CLASS WTBtree_gist_ops using gist;
 
-DROP OPERATOR < (char(12), char(12));
-
-DROP OPERATOR <= (char(12), char(12));
-
-DROP OPERATOR = (char(12), char(12));
-
-DROP OPERATOR >= (char(12), char(12));
-
-DROP OPERATOR > (char(12), char(12));
-
-DROP FUNCTION wtb_lt(query char(12), wk char(12));
-
-DROP FUNCTION wtb_le(query char(12), wk char(12));
-
-DROP FUNCTION wtb_gt(query char(12), wk char(12));
-
-DROP FUNCTION wtb_ge(query char(12), wk char(12));
-
-DROP FUNCTION wtb_eq(query char(12), wk char(12));
+DROP TYPE khyoo cascade;
 
 DROP TABLE wtraj;
 

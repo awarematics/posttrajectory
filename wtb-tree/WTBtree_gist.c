@@ -17,7 +17,7 @@
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
 
-#define KEY_SIZE 12
+#define KEY_SIZE 16
 
 
 PG_MODULE_MAGIC;
@@ -260,6 +260,36 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(out);
 }
 
+char *
+leaf_key_copy(const INTERNAL_KEY *i, bool force_node)
+{
+	char *l = NULL;
+
+	if (!force_node)
+	{							/* leaf key mode */
+//printf("------------------leaf key mode\n");
+		l = (char *) palloc(VARSIZE(i->lower) + VARHDRSZ);
+		memcpy(VARDATA(l), i->lower, VARSIZE(i->lower));
+		SET_VARSIZE(l, VARSIZE(i->lower) + VARHDRSZ);
+/*
+printf("VARSIZE : %d\n", VARSIZE(l));
+printf("VARDATA : %s\n", VARDATA(i->lower));
+printf("VARDATA : %s\n", VARDATA(l));
+printf("DATA : %s\n", l);
+printf("DATA : %s\n", DatumGetPointer(l));
+*/
+	}
+	else
+	{							/* node key mode  */
+//printf("------------------node key mode\n");
+		l = (char *) palloc(INTALIGN(VARSIZE(i->lower)) + VARSIZE(i->upper) + VARHDRSZ);
+		memcpy(VARDATA(l), i->lower, VARSIZE(i->lower));
+		memcpy(VARDATA(l) + INTALIGN(VARSIZE(i->lower)), i->upper, VARSIZE(i->upper));
+		SET_VARSIZE(l, INTALIGN(VARSIZE(i->lower)) + VARSIZE(i->upper) + VARHDRSZ);
+	}
+	return l;
+}
+
 GISTENTRY *
 WTBtree_var_compress(GISTENTRY *entry)
 {
@@ -267,10 +297,29 @@ WTBtree_var_compress(GISTENTRY *entry)
 
 	if (entry->leafkey)
 	{
-		LEAF_KEY	   *leaf = (LEAF_KEY *) DatumGetPointer(PG_DETOAST_DATUM(entry->key));
+
+		char *l = NULL;
+		LEAF_KEY *tmp = (LEAF_KEY *) DatumGetPointer(PG_DETOAST_DATUM(entry->key));
+		
+		INTERNAL_KEY *i;
+		i = (INTERNAL_KEY *) palloc(sizeof(INTERNAL_KEY));
+
+		memcpy(i->lower, tmp, VARSIZE(tmp));
+		memcpy(i->upper, tmp, VARSIZE(tmp));
+
+//	printf("----------------VARSIZE : %d\n", VARSIZE(i->lower));
+//	printf("----------------VARSIZE : %d\n", VARSIZE(i->upper));
+		l = (char *) leaf_key_copy(i, FALSE);
+
+/*
+char *ch;
+ch = (char *) &(((char *) l)[VARHDRSZ]);
+printf("VARSIZE(ch) : %d\n", VARSIZE(ch));
+printf("VARDATA(ch) : %s\n", VARDATA(ch));
+*/
 
 		retval = palloc(sizeof(GISTENTRY));
-		gistentryinit(*retval, PointerGetDatum(leaf),
+		gistentryinit(*retval, PointerGetDatum(tmp),
 					  entry->rel, entry->page,
 					  entry->offset, TRUE);
 	}
@@ -309,14 +358,11 @@ printf("GistEntryVector size : %d\n", sizeof(GistEntryVector));
 /*
 printf("entry_in->key : %s\n", DatumGetPointer(entry_in->key));
 printf("entry_in->key 16진수 값 : %x, key : %s\n", DatumGetPointer(entry_in->key)[0], DatumGetPointer(entry_in->key));
-printf("strlen(entry_in->key) : %d\n", strlen(DatumGetPointer(entry_in->key)));
+printf("VARSIZE_1B(entry_in->key) : %d\n", VARSIZE_1B(DatumGetPointer(entry_in->key)));
 */
 
-printf("Leaf %d\n", entry_in->leafkey);
-
 	if (!entry_in->leafkey)
-	{		 
-		printf("entry_in->leafKey is False!---------------------------------");
+	{	
 		PG_RETURN_POINTER(entry_in);
 	}  
 
@@ -329,7 +375,7 @@ printf("Leaf %d\n", entry_in->leafkey);
 		PG_RETURN_POINTER(entry_out);
 	}
 
-	//printf("entry_in->key is %s\n", entry_in->key);
+//	printf("entry_in->key is %s\n", entry_in->key);
 
 //	leaf = (LEAF_KEY *) palloc(sizeof(LEAF_KEY));
 //	memcpy(leaf, DatumGetPointer(entry_in->key), KEY_SIZE);
@@ -429,7 +475,7 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 	float	   *result = (float *) PG_GETARG_POINTER(2);
 	LEAF_KEY origKey, newKey;
 	
-	printf("---------o->key : %s\n", o->key);
+//	printf("---------o->key : %s\n", o->key);
 
 	memcpy(origKey, DatumGetPointer(o->key), KEY_SIZE);
 	memcpy(newKey, DatumGetPointer(n->key), KEY_SIZE);
@@ -605,5 +651,33 @@ printf("DatumGetPointer(entryvec->vector[%d].key) : %s\n",i, DatumGetPointer(ent
 */
 	
 	PG_RETURN_POINTER(v);
+}
+
+PG_FUNCTION_INFO_V1(khyoo_in);
+Datum khyoo_in(PG_FUNCTION_ARGS)
+{
+	char *str = PG_GETARG_CSTRING(0);
+
+	khyoo *result;
+
+	result = (khyoo *) palloc(sizeof(khyoo));
+
+	memcpy(result, str, sizeof(khyoo));
+
+	PG_RETURN_POINTER(result);
+}
+
+PG_FUNCTION_INFO_V1(khyoo_out);
+Datum khyoo_out(PG_FUNCTION_ARGS)
+{
+	khyoo *tmp = (khyoo *) PG_GETARG_POINTER(0);
+
+	char *result;
+
+	result = (char *) palloc(sizeof(khyoo));
+
+	memcpy(result, tmp, sizeof(khyoo));
+
+	PG_RETURN_POINTER(result);
 }
 

@@ -126,15 +126,17 @@ DECLARE
 	--sequence_name를 가져온다.
 	execute 'select f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
 	into sequence_name;
-	
+
+	RAISE NOTICE 'sequence_name : % : end.',sequence_name;
+
 	--sequence_name를 이용하여 삽입할 sequence를 결정한다.
-	execute 'select nextval(' || sequence_name[0]["f_sequence_name"] || ')'
+	execute 'select nextval(' || quote_literal(sequence_name) || ')'
 	into moid;
 		
-	RAISE NOTICE 'test : % : end.',moid[0]["nextval"];
+	RAISE NOTICE 'test : % : end.',moid;
 	
 	--user maked column(trajectoryColumn)의 값을 삽입해준다.
-	NEW.segcolumn_name[0]['f_trajectory_column'] = (segtable_oid[0]["f_segtableoid"], moid[0]["nextval"]);
+	--NEW.segcolumn_name = (segtable_oid, moid);
 		
 	return NULL;
 END
