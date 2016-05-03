@@ -1,12 +1,10 @@
 
-
-
-
 #include "postgres.h"
 
 #include "access/gist.h"
 #include "access/skey.h"
 #include "utils/builtins.h"
+#include "./geohash/geohash.h"
 
 #include "WTBtree_gist.h"
 
@@ -295,6 +293,17 @@ WTBtree_var_compress(GISTENTRY *entry)
 {
 	GISTENTRY  *retval;
 
+// ----- GeoHash Testing Start-----
+
+/* 
+double lat = 39.91227, lng = 116.47188;
+
+char *tmp10 = geohash_encode(lat, lng, 12);
+
+printf("geohash_encode : %s\n", tmp10);
+*/
+// ----- GeoHash Testing End-----
+
 	if (entry->leafkey)
 	{
 
@@ -318,13 +327,42 @@ printf("VARSIZE(ch) : %d\n", VARSIZE(ch));
 printf("VARDATA(ch) : %s\n", VARDATA(ch));
 */
 
+printf("entry->key : %x\n", tmp[0]);
+printf("entry->key : %x\n", DatumGetPointer(PG_DETOAST_DATUM_SLICE(entry->key, 0, 1)));
+printf("entry->key : %s, entry->key[0] : %x\n", VARDATA(DatumGetPointer(PG_DETOAST_DATUM(entry->key))), DatumGetPointer(entry->key)[0]);
+printf("entry->key : %s, entry->key[0] : %x\n", VARDATA(PG_DETOAST_DATUM(entry->key)), DatumGetPointer(entry->key)[0]);
+printf("entry->key : %s, entry->key[0] : %x\n", DatumGetPointer(PG_DETOAST_DATUM(entry->key)), DatumGetPointer(entry->key)[0]);
+
+printf("leafkey\n");	
+printf("entry->key : %s\n", entry->key);
+printf("VARDATA(entry->key) : %s\n", VARDATA(entry->key));
+printf("sizeof(entry->key) : %d\n", sizeof(entry->key));
+printf("VARSIZE(entry->key) : %d\n", VARSIZE(entry->key));
+//PG_DETOAST_DATUM_SLICE(gsdatum, 0, 8 + sizeof(BOX2DF))
+
 		retval = palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(tmp),
 					  entry->rel, entry->page,
 					  entry->offset, TRUE);
 	}
-	else
+	else {		
 		retval = entry;
+	}
+	
+	/*
+Datum		d = DirectFunctionCall1(rtrim1, retval->key);
+
+char *tmp = (char*) DatumGetPointer(PG_DETOAST_DATUM(d));
+
+printf("retval->key : %s\n", retval->key);
+printf("DatumGetPointer(retval->key) : %s\n", DatumGetPointer(retval->key));
+printf("DatumGetPointer(PG_DETOAST_DATUM(retval->key)) : %s\n", DatumGetPointer(PG_DETOAST_DATUM(retval->key)));
+printf("tmp : %s\n", tmp);
+printf("VARDATA(retval->key) : %s\n", VARDATA(retval->key));
+printf("VARDATA(DatumGetPointer(retval->key)) : %s\n", VARDATA(DatumGetPointer(retval->key)));
+printf("VARDATA(DatumGetPointer(PG_DETOAST_DATUM(retval->key)) : %s\n", VARDATA(DatumGetPointer(PG_DETOAST_DATUM(retval->key))));
+printf("VARDATA(tmp) : %s\n", VARDATA(tmp));
+*/
 
 	return (retval);
 }
@@ -510,6 +548,36 @@ printf("%x\n", origKey[1]);
 	*result += (float) (dres / ((double) (ol + 1)));
 //	*result *= (FLT_MAX / (o->rel->rd_att->natts + 1));
 		
+		/*
+GBT_VARKEY *orge = (GBT_VARKEY *) DatumGetPointer(o->key);
+GBT_VARKEY_R ok;
+
+ok = gbt_var_key_readable(orge);
+
+printf("ok.lower : %s\n", ok.lower);
+printf("VARDATA(ok.lower) : %s\n", VARDATA(ok.lower));
+printf("VARDATA(ok.upper) : %s\n", VARDATA(ok.upper));
+*/
+
+/*
+printf("o->key : %s\n", o->key);
+printf("n->key : %s\n", n->key);
+
+printf("VARDATA(o->key) : %s\n", VARDATA(o->key));
+printf("VARDATA(n->key) : %s\n", VARDATA(n->key));
+
+printf("VARDATA(DatumGetPointer(o->key)) : %s\n", VARDATA(DatumGetPointer(o->key)));
+printf("VARDATA(DatumGetPointer(n->key)) : %s\n", VARDATA(DatumGetPointer(n->key)));
+
+printf("VARDATA(DatumGetPointer(PG_DETOAST_DATUM(o->key))) : %s\n", VARDATA(DatumGetPointer(PG_DETOAST_DATUM(o->key))));
+printf("VARDATA(DatumGetPointer(PG_DETOAST_DATUM(n->key))) : %s\n", VARDATA(DatumGetPointer(PG_DETOAST_DATUM(n->key))));
+
+char *tmp1 = (char*)DatumGetPointer(PG_DETOAST_DATUM(o->key));
+char *tmp2 = (char*)DatumGetPointer(PG_DETOAST_DATUM(n->key));
+printf("VARDATA(tmp1) : %s\n", VARDATA(tmp1));
+printf("VARDATA(tmp2) : %s\n", VARDATA(tmp2));
+*/
+
 	PG_RETURN_POINTER(result);
 }
 
