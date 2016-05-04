@@ -292,6 +292,76 @@ GISTENTRY *
 WTBtree_var_compress(GISTENTRY *entry)
 {
 	GISTENTRY  *retval;
+	
+	GSERIALIZED *gpart;
+	uint8_t flags;
+	BOX2DF *box2df;
+
+	box2df = (BOX2DF *) palloc(sizeof(BOX2DF));
+	
+	if (VARATT_IS_EXTENDED(entry->key)) 
+	{ 
+		printf("true\n");
+		gpart = (GSERIALIZED*)PG_DETOAST_DATUM_SLICE(entry->key, 0, 8 + sizeof(BOX2DF)); 
+
+		printf("gpart->size : %d\n", gpart->size);
+		printf("gpart->flags : %d\n", gpart->flags);
+		//printf("gpart->size : %d\n", gpart->size);
+
+		flags = gpart->flags;
+		
+	} 
+	else 
+	{ 
+		printf("false\n");
+	//	gpart = (GSERIALIZED*)PG_DETOAST_DATUM(gsdatum); 
+	} 
+	
+	if ( FLAGS_GET_BBOX(flags) )
+	{
+	
+		//POSTGIS_DEBUG(4, "copying box out of serialization");
+		memcpy(box2df, gpart->data, sizeof(BOX2DF));
+		//result = LW_SUCCESS;
+
+printf("----------------: %f\n", box2df->xmin);
+
+
+		char *minPnt, *maxPnt, *cvtGeoHash;
+
+		printf("----------------: %f\n", box2df->ymin);
+		minPnt = (char*) palloc(12);
+		maxPnt = (char*) palloc(12);
+		cvtGeoHash = (char*) palloc(12);
+
+		printf("----------------: %f\n", box2df->xmax);
+		memcpy(minPnt, geohash_encode((double) box2df->ymin, (double) box2df->xmin, 12), 12);
+
+		memcpy(maxPnt, geohash_encode((double) box2df->ymax, (double) box2df->xmax, 12), 12);
+		printf("----------------: %f\n", box2df->ymax);
+
+		cvtGeoHash = convert_GeoHash_from_box2d(minPnt, maxPnt, 12);
+
+		printf("-----------geohash_encode : %s\n", cvtGeoHash);
+
+	}
+	else
+	{
+	
+		GBOX gbox;
+		GSERIALIZED *g = (GSERIALIZED*)PG_DETOAST_DATUM(entry->key);
+/*		
+		LWGEOM *lwgeom = lwgeom_from_gserialized(g);
+		if ( lwgeom_calculate_gbox(lwgeom, &gbox) == LW_FAILURE )
+		{
+			POSTGIS_DEBUG(4, "could not calculate bbox, returning failure");
+			lwgeom_free(lwgeom);
+			return LW_FAILURE;
+		}
+		lwgeom_free(lwgeom);
+		result = box2df_from_gbox_p(&gbox, box2df);
+*/
+	}
 
 // ----- GeoHash Testing Start-----
 
