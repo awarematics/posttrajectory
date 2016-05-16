@@ -7,9 +7,10 @@
 #include "access/gist.h"
 #include "access/skey.h"
 #include "utils/builtins.h"
+#include "./geohash/geohash.h"
 //#include "gserialized_gist.h"  
 #include "WTBtree_gist.h"
-#include "./geohash/geohash.h"
+
 
 #define WTBtree_LessStrategyNumber		1
 #define WTBtree_LessEqualStrategyNumber		2
@@ -637,7 +638,48 @@ printf("VARDATA_4B(ok.lower) : %s\n", VARDATA_4B(ok.lower));
 printf("VARDATA_4B(ok.upper) : %s\n", VARDATA_4B(ok.upper));
 
 */
+printf("strategy : %d\n", strategy);
 
+
+char* temp;
+temp = (char*) palloc(12);
+
+memcpy(temp, "wx4fccknzng3", 12);
+
+GeoCoord gCoord = geohash_decode(temp);
+
+printf("gCoord.north : %lf\n", gCoord.north);
+printf("gCoord.east : %lf\n", gCoord.east);
+printf("gCoord.south : %lf\n", gCoord.south);
+printf("gCoord.west : %lf\n", gCoord.west);
+
+BOX2DF* tbox;
+tbox = (BOX2DF*) palloc(sizeof(BOX2DF));
+
+tbox->xmin = (float) gCoord.west;
+tbox->ymin = (float) gCoord.south;
+tbox->xmax = (float) gCoord.east;
+tbox->ymax = (float) gCoord.north;
+
+
+printf("temp : %s\n", temp);
+
+
+BOX2DF query_gbox_index;
+	gserialized_datum_get_box2df_p(query, &query_gbox_index);
+
+	if (GIST_LEAF(entry))
+	{
+		result = gserialized_gist_consistent_leaf_2d(tbox,
+		             &query_gbox_index, strategy);
+	}
+	else
+	{
+		result = gserialized_gist_consistent_internal_2d(tbox,
+		             &query_gbox_index, strategy);
+	}
+
+/*
 	BOX2DF query_gbox_index;
 	gserialized_datum_get_box2df_p(query, &query_gbox_index);
 
@@ -654,7 +696,7 @@ printf("VARDATA_4B(ok.upper) : %s\n", VARDATA_4B(ok.upper));
 		             &query_gbox_index, strategy);
 	}
 
-
+*/
 
 /*
 	int size = 12;
