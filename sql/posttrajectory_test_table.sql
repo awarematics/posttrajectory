@@ -23,6 +23,9 @@ create table taxi(
 	taxi_driver varchar
 );
 
+-- 컬럼 추가
+select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
+
 select * from taxi;
 delete from taxi;
 
@@ -40,10 +43,6 @@ insert into taxi values(7, '57누2007', '옵티마', 'hongkd7');
 insert into taxi values(8, '57누2008', '옵티마', 'hongkd7');
 insert into taxi values(9, '57누2009', '소나타YF', 'hongkd7');
 insert into taxi values(10, '57누2010', '소나타YF', 'hongkd7');
-
-
--- 컬럼 추가
-select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
 
 
 select * from taxi;

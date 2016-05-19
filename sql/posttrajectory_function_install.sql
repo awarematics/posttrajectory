@@ -1,8 +1,8 @@
 ﻿
 -- TYPE tpoint 정의 --
 CREATE TYPE tpoint as(
-	p	geometry,
-	ptime	timestamp with time zone
+	pnt	geometry,			-- Point type
+	ts	timestamp with time zone	-- Timestamp type
 );
 
 
@@ -40,7 +40,7 @@ $$
 DECLARE
 	array_tpoint	alias for $1;
 	array_max	integer;
-	array_lower	integer;
+	array_lower	integer;	
 	i		integer;
 	new_rect	geometry;
 BEGIN
@@ -53,13 +53,13 @@ BEGIN
 	i := array_lower;
 
 	EXECUTE 'select st_makebox2d($1, $1)::geometry'
-	INTO new_rect USING array_tpoint[i].p;
+	INTO new_rect USING array_tpoint[i].pnt;
 
 	i := i+1;
 
 	WHILE( i <= array_max ) LOOP
 		EXECUTE 'select st_combine_bbox($1::box2d, $2)::geometry'
-		INTO new_rect USING new_rect, array_tpoint[i].p;
+		INTO new_rect USING new_rect, array_tpoint[i].pnt;
 		i := i+1;
 	END LOOP;
 
@@ -107,41 +107,34 @@ $delete_mpoint_seg$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
-DECLARE
-	segtable_oid		text;
-	segcolumn_name		text;
-	sequence_name		text;
-	moid			text;
-	
- BEGIN
-	
-	--segtable_oid를 가져온다. 
-	execute 'select f_segtableoid from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
-	into segtable_oid;
-	
-	--segcolumn_name를 가져온다.
-	execute 'select f_trajectory_column from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
-	into segcolumn_name;
-	
-	--sequence_name를 가져온다.
-	execute 'select f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
-	into sequence_name;
+	# 해당 테이블의 이름을 가져온다.
+	table_name = TD["table_name"]
 
-	RAISE NOTICE 'sequence_name : % : end.',sequence_name;
+	#segtable_oid를 가져온다. 
+	plan = plpy.prepare("select f_segtableoid::oid from trajectory_columns where f_table_name = $1", ["text"])
+	segtable_oid = plpy.execute(plan, [table_name])
 
-	--sequence_name를 이용하여 삽입할 sequence를 결정한다.
-	execute 'select nextval(' || quote_literal(sequence_name) || ')'
-	into moid;
-		
-	RAISE NOTICE 'test : % : end.',moid;
+	#segcolumn_name를 가져온다.
+	plan = plpy.prepare("select f_trajectory_column::text from trajectory_columns where f_table_name = $1", ["text"])
+	segcolumn_name = plpy.execute(plan, [table_name])
+
+	#sequence_name를 가져온다.
+	plan = plpy.prepare("select f_sequence_name from trajectory_columns where f_table_name = $1", ["text"])	
+	sequence_name = plpy.execute(plan, [table_name])
+
+	#sequence_name를 이용하여 삽입할 sequence를 결정한다.
+	plan = plpy.prepare("select nextval($1)", ["text"])
+	moid = plpy.execute(plan, [sequence_name[0]["f_sequence_name"]])
+
+	#user maked column(trajectoryColumn)의 값을 삽입해준다.
+	TD["new"][segcolumn_name[0]['f_trajectory_column']] = (int(segtable_oid[0]["f_segtableoid"]), int(moid[0]["nextval"]))
 	
-	--user maked column(trajectoryColumn)의 값을 삽입해준다.
-	--NEW.segcolumn_name = (segtable_oid, moid);
-		
-	return NULL;
-END
-$$
-LANGUAGE 'plpgsql';
+	#TD["new"][segcolumn_name[0]['f_trajectory_column']] = int(segtable_oid[0]["f_segtableoid"])
+	#TD["new"] = {[segcolumn_name[0]['f_trajectory_column']]:int(segtable_oid[0]["f_segtableoid"])}
+	
+	return "MODIFY"
+	
+$$ LANGUAGE plpythonu;
 
 
 -- AddTrajectoryColumn 함수 array 크기를 지정해주지 않는다.
@@ -507,15 +500,15 @@ COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, ch
 */
 
 
-CREATE OR REPLACE FUNCTION tpoint( geometry, timestamp) RETURNS tpoint AS
+CREATE OR REPLACE FUNCTION tpoint(geometry, timestamp) RETURNS tpoint AS
 $$
 DECLARE
 	time_point	alias for $1;
 	time_stamp	alias for $2;
 	tp	tpoint;
 BEGIN	
-	tp.p := time_point;
-	tp.ptime := time_stamp;
+	tp.pnt := time_point;
+	tp.ts := time_stamp;
 
 	RETURN tp;
 END
@@ -646,9 +639,9 @@ BEGIN
 	IF ( mpid IS NULL) THEN
 		-- mpid, segid, start_time, end_time, tpseg 삽입
 		EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) ||'(mpid, segid, mpcount, rect, start_time, end_time, tpseg) 
-			VALUES( $1 , 1, 1, st_makebox2d( $2, $2 ), TIMESTAMP '|| quote_literal(tp.ptime) || '  , TIMESTAMP  '|| quote_literal(tp.ptime) || 
-			' , ARRAY[(  $2 , TIMESTAMP  '|| quote_literal(tp.ptime) || ')]::tpoint[]) '
-		USING f_trajectroy.moid, tp.p;
+			VALUES( $1 , 1, 1, st_makebox2d( $2, $2 ), TIMESTAMP '|| quote_literal(tp.ts) || '  , TIMESTAMP  '|| quote_literal(tp.ts) || 
+			' , ARRAY[(  $2 , TIMESTAMP  '|| quote_literal(tp.ts) || ')]::tpoint[]) '
+		USING f_trajectroy.moid, tp.pnt;
 	END IF;
 	-- 최초 삽입은 아닐때
 	IF( mpid IS NOT NULL) THEN
@@ -670,7 +663,7 @@ BEGIN
 			EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
 				' set mpcount = mpcount+1, rect = st_combine_bbox( rect::box2d, $1), end_time = $2, tpseg = array_append(tpseg, $3) 
 				where mpid = $4 and segid = $5 '
-			USING tp.p, tp.ptime, tp, mpid, segid;
+			USING tp.pnt, tp.ts, tp, mpid, segid;
 		-- next_segid가 null이 아니거나 tpseg가 꽉 찾다면 새로운 segid를 생성하여 데이터를 삽입하여야 한다. 
 		ELSE 
 			-- next_segid가 null이 아니라면 새로운 row를 생성하여 삽입
@@ -679,9 +672,9 @@ BEGIN
 			INTO new_segid USING mpid;
 
 			EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) ||'(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-				VALUES( $1,  ' || new_segid+1 || ', $2, 1, st_makebox2d( $3, $3), TIMESTAMP ' || quote_literal(tp.ptime) || ' , TIMESTAMP ' || quote_literal(tp.ptime) ||
-				' , ARRAY[( $3 , TIMESTAMP ' || quote_literal(tp.ptime) || ')]::tpoint[])'
-			USING f_trajectroy.moid, segid, tp.p;
+				VALUES( $1,  ' || new_segid+1 || ', $2, 1, st_makebox2d( $3, $3), TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
+				' , ARRAY[( $3 , TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
+			USING f_trajectroy.moid, segid, tp.pnt;
 			-- 새로운 segid값에 데이터를 삽입후 전에 사용하던 segid에 next_segid값을 설정해준다.
 			EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
 				' set next_segid = ' || new_segid+1 || ' where mpid = $1 and segid = $2'
@@ -780,11 +773,11 @@ BEGIN
 					
 				EXECUTE 'select tpseg[' || i || '].p from ' || quote_ident(f_trajectory_segtable_name) || 
 					' WHERE mpid = ' || data.mpid || ' and segid = ' || data.segid 
-				INTO new_tpoint.p;
+				INTO new_tpoint.pnt;
 
 				EXECUTE 'select tpseg[' || i || '].ptime from ' || quote_ident(f_trajectory_segtable_name) || 
 					' WHERE mpid = ' || data.mpid || ' and segid = ' || data.segid 
-				INTO new_tpoint.ptime;
+				INTO new_tpoint.ts;
 
 				-- tpseg의 값을 수정하였다면 새로운 tpseg로 붙여주어 나중에 row에 새로운 tpseg로 변경해준다.
 				IF( new_tpoint IS NOT NULL) THEN
@@ -891,7 +884,7 @@ BEGIN
 
 
 			WHILE( i <= tpseg_size  ) LOOP
-				IF( tp_seg[i].ptime = c_tpoint.ptime ) THEN
+				IF( tp_seg[i].ts = c_tpoint.ts ) THEN
 					execute 'update ' || quote_ident(c_trajectory_segtable_name) || 
 						' set tpseg[$1] = $2 where mpid = $3 and segid = $4'
 					using i, c_tpoint, data.mpid, data.segid;
@@ -904,7 +897,7 @@ BEGIN
 					execute 'update ' || quote_ident(c_trajectory_segtable_name) ||
 						' set rect = ( select st_makebox2d( $1, $1) ) ' ||
 						' where mpid = $2 and segid = $3'
-					using tp_seg[i].p, data.mpid, data.segid;
+					using tp_seg[i].pnt, data.mpid, data.segid;
 				ELSE
 					execute 'select rect from ' || quote_ident(c_trajectory_segtable_name) ||
 						' where mpid = $1 and segid = $2' 
@@ -1008,7 +1001,7 @@ BEGIN
 	sql := 'select * from ' || quote_ident(c_trajectory_segtable_name) || ' where mpid = ' || c_trajectory.moid || 
 		' order by start_time';
 
-	IF( (c_start_time <= c_tpoint[tpoint_min_size].ptime) AND (c_end_time >= c_tpoint[tpoint_max_size].ptime)) THEN
+	IF( (c_start_time <= c_tpoint[tpoint_min_size].ts) AND (c_end_time >= c_tpoint[tpoint_max_size].ts)) THEN
 	-- 사용자 입력 시간과 tpoint[]의 시간이 contain되었을 때
 		FOR data IN EXECUTE sql LOOP
 			-- 읽어온 row에 사용자 입력 데이터로 변환되어야 할 데이터가 있을때
@@ -1019,12 +1012,12 @@ BEGIN
 					WHILE( i <= data.mpcount ) LOOP
 						-- 사용자가 입력한 start_time보다 저장된 데이터(tpseg)의 시간이 같거나 크다면
 						-- 현재의 앞부분까지가 보존해야 할 데이터이다.
-						IF( c_start_time > tp_seg[i].ptime AND c_start_time <= tp_seg[i+1].ptime ) THEN
+						IF( c_start_time > tp_seg[i].ts AND c_start_time <= tp_seg[i+1].ts) THEN
 							tpseg_temp1 := tp_seg[1:i];
 						END IF;
 						-- 사용자가 입력한 end_time보다 저장된 데이터(tpseg)의 시간이 더 크다면
 						-- 현재부터 보존해야 할 데이터이다.
-						IF( c_end_time < tp_seg[i].ptime AND c_end_time >= tp_seg[i-1].ptime ) THEN
+						IF( c_end_time < tp_seg[i].ts AND c_end_time >= tp_seg[i-1].ts) THEN
 							tpseg_temp2 := tp_seg[i:data.mpcount];
 							i := data.mpcount;
 						END IF;
@@ -1047,7 +1040,7 @@ BEGIN
 					IF( tpseg_temp3_size <= tpseg_max_size ) THEN
 						EXECUTE 'update ' || quote_ident(c_trajectory_segtable_name) ||
 							' set tpseg = $1, start_time = $2, end_time = $3, mpcount = $4 where mpid = $5 and segid = $6'
-						USING new_tpseg, new_tpseg[1].ptime, new_tpseg[tpseg_temp3_size].ptime, tpseg_temp3_size, data.mpid, data.segid;
+						USING new_tpseg, new_tpseg[1].ts, new_tpseg[tpseg_temp3_size].ts, tpseg_temp3_size, data.mpid, data.segid;
 						-- rect 계산
 						EXECUTE 'select getBox2D($1)'
 						INTO new_rect USING new_tpseg;
@@ -1064,7 +1057,7 @@ BEGIN
 						new_tpseg := tpseg_temp3[1:tpseg_max_size];
 						EXECUTE 'update '  || quote_ident(c_trajectory_segtable_name) ||
 							' set tpseg = $1, start_time = $2, end_time = $3, mpcount = $4 where mpid = $5 and segid = $6'
-						USING new_tpseg, new_tpseg[1].ptime, new_tpseg[tpseg_max_size].ptime, tpseg_max_size, data.mpid, data.segid;
+						USING new_tpseg, new_tpseg[1].ts, new_tpseg[tpseg_max_size].ts, tpseg_max_size, data.mpid, data.segid;
 
 						EXECUTE 'select getBox2D($1)'
 						INTO new_rect USING new_tpseg;
@@ -1100,7 +1093,7 @@ BEGIN
 							EXECUTE 'INSERT INTO ' || quote_ident(c_trajectory_segtable_name) || 
 									'(mpid, segid, next_segid, before_segid, mpcount, start_time, end_time, tpseg) ' || 
 									'values($1, $2, $3, $4, $5, $6, $7, $8)'
-							USING data.mpid, new_row_segid, new_next_segid, new_before_segid, new_tpseg_size, new_tpseg[1].ptime, new_tpseg[new_tpseg_size].ptime, new_tpseg;
+							USING data.mpid, new_row_segid, new_next_segid, new_before_segid, new_tpseg_size, new_tpseg[1].ts, new_tpseg[new_tpseg_size].ts, new_tpseg;
 
 							EXECUTE 'select getBox2D($1)'
 							INTO new_rect USING new_tpseg;
@@ -1193,7 +1186,7 @@ BEGIN
 			i := 1;
 
 			WHILE( i <= data.mpcount ) LOOP
-				IF( tp_seg[i].ptime >= start_time AND tp_seg[i].ptime <= end_time ) THEN
+				IF( tp_seg[i].ts >= start_time AND tp_seg[i].ts <= end_time ) THEN
 					IF( new_tpseg = NULL  ) THEN
 						new_tpseg := tp_seg[1:i];
 					ELSE
@@ -1257,7 +1250,7 @@ BEGIN
 			EXECUTE sql INTO tpoint_MaxNumber using tpseg;
 			WHILE tpoint_MaxNumber >= nowTpsegNumber LOOP
 				EXECUTE 'select st_box2d_overlap($1, (select st_box2d($2)))'
-				INTO isOverlap_point USING user_rect, tpseg[nowTpsegNumber].p;
+				INTO isOverlap_point USING user_rect, tpseg[nowTpsegNumber].pnt;
 				IF(isOverlap_point) THEN
 					select_tpoint := tpseg[nowTpsegNumber];
 					--execute 'select st_astext($1)'
@@ -1361,7 +1354,7 @@ BEGIN
 	WHILE array_size >= i LOOP
 		
 		EXECUTE 'select array_append($1, $2)'
-		INTO return_value USING return_value, input_tpoint[i].p;
+		INTO return_value USING return_value, input_tpoint[i].pnt;
 		i := i+1;
 	END LOOP;
 	
@@ -1552,264 +1545,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
-
-CREATE OR REPLACE FUNCTION aa_enter(trajectory, geometry, out starttime timestamp[], out endtime timestamp[]) AS
-$$
-DECLARE
-	user_traj			alias for $1;
-	input_geometry			alias for $2;
-	f_trajectory_segtable_name	text;
-
-	sql				text;
-	data				record;
-	isIntersect			boolean;
-
-	intersect_tpseg			tpoint[];
-	tpoint_to_Linestring		geometry;
-	
-	inetersectionLinestrings	geometry;
-	differenceLinestrings		geometry;
-	boundarypoint			geometry;
-	
-	differencecount			integer;
-	intersectioncount		integer;
-
-	isIntersects			boolean;
-	isdisjoint			boolean;
-	iscoveredby			boolean;
-	isinside			boolean;
-
-	i				integer;
-	j				integer;
-	tpoint_size			integer;
-	nowtpointnumber			integer;
-	lineequaltpoint			tpoint[];
-	lineequaltpoint_size		integer;
-
-	diffline			geometry;
-	numberofdifflinetopoint		integer;
-	intersectsdiff			geometry[];
-	numberofintersectsdiff		integer;
-	
-	interline			geometry;
-	numberofinterlinetopoint	integer;
-	intersectsinner			geometry[];
-	
-	sequenceOfgeometry		geometry[];
-	sequenceOfdiff_starttime	timestamp[];
-	sequenceOfdiff_endtime		timestamp[];
-	sequenceOfinter_starttime	timestamp[];
-	sequenceOfinter_endtime		timestamp[];
-
-	searchpoint			geometry;
-	is_line_tp_equal		boolean;
-		
-	
-BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
-
-	--traj의 모든 tpoint segment를 검색하여 주여진 영역과 intersection이 일어나는 영역들을 tpoint[]형태로 리턴
-	EXECUTE 'select getIntersectTpoint( $1, $2 )' INTO intersect_tpseg USING user_traj, input_geometry;
-	
-	--구해진 tpoint[]를 geometry(point[])로 변환
-	EXECUTE 'select tpoint_to_linestring( $1 )' INTO tpoint_to_Linestring USING intersect_tpseg;
-
-	--구해진 linestring를 이용하여 intersetion과 difference를 실행한다.
-	EXECUTE 'select st_intersection( $1, $2 )' INTO inetersectionLinestrings USING tpoint_to_Linestring, input_geometry;
-	EXECUTE 'select st_difference( $1, $2 )' INTO differenceLinestrings USING tpoint_to_Linestring, input_geometry;
-	
-	-- 구해진 differencelinestring중에 해당 영역과 intersects 되는지를 확인한다.
-	-- intersects가 되지 않는다면 해당 linestring는 검사할 필요가 없다.
-	EXECUTE 'select st_numgeometries( $1 )' INTO differencecount USING differenceLinestrings;
-
-	i := 1;
-	nowtpointnumber := 1;
-	
-	EXECUTE 'select array_upper( $1, 1)' INTO tpoint_size USING intersect_tpseg;
-
-	-- differencelinestring들중 해당 영역과 intersects 되는 라인만을 찾는다.
-	WHILE ( differencecount >= i) LOOP
-		-- i번째 diffenencelinestring를 가져온다.
-		EXECUTE 'select st_geometryn( $1, $2)' INTO diffline USING differenceLinestrings, i;
-		-- i번째 differencelinestring가 해당 영역과 intersects 되는지 확인
-		EXECUTE 'select st_intersects( $1, $2 )' INTO isIntersects USING diffline, input_geometry;
-
-		IF( isIntersects ) THEN
-			EXECUTE 'select array_append($1, $2)' INTO intersectsdiff USING intersectsdiff, diffline;
-		END IF;
-	END LOOP;
-
-		
-	--linestring의 순서대로 검사 
-	WHILE( differencecount >= i) LOOP
-		-- differencelinstrings에서 line를 하나씩 가져온다.
-		sql := 'select st_geometryn( $1, $2 )';
-		EXECUTE sql INTO diffline USING differenceLinestrings, i;
-		raise notice 'differenceLinestrings, i : %', diffline;
-
-		-- 주어진 linestring에 일치하는 tpoint[]를 찾는다.
-		-- 먼저 linestring의 point갯수를 가져와서 tpoint[]의 현재 점부터 검사를 한다.  
-		sql := 'select st_numpoints( $1 )';
-		EXECUTE sql INTO numberofdifflinetopoint USING diffline;
-		raise notice 'numberofdifflinetopoint 에 데이터 삽입 : %',numberofdifflinetopoint;
-	
-		nowtpointnumber := 1;
-		j := 1;
-		WHILE(  numberofdifflinetopoint > j  AND nowtpointnumber <= tpoint_size ) LOOP
-			-- linestring의 point와 tpoint의 현재 point을 비교하기 위하여 linestring의 point을 가져온다.
-			--EXECUTE 'select st_pointn( $1, $2 )' INTO searchpoint USING diffline, j;
-
-			EXECUTE 'select st_coveredby( $1, $2 )' INTO is_line_tp_equal USING intersect_tpseg[nowtpointnumber].p, diffline;
-
-			IF(is_line_tp_equal) THEN
-				--만약 linestring의 point와 tpoint의 point가 같다면 lineequaltpoint에 tpoint를 삽입해준다.
-				sql := 'select array_append( $1, $2)';
-				EXECUTE sql INTO lineequaltpoint USING lineequaltpoint, intersect_tpseg[nowtpointnumber];
-				raise notice 'tpoint[] 에 데이터 삽입%', sql;
-				j := j+1;
-				nowtpointnumber := nowtpointnumber+1;
-				
-			ELSE
-				IF( numberofdifflinetopoint > 2 AND j = 1 ) THEN
-				j := j + 1;
-				RAISE notice 'j 출력 : ,  %' , j;
-				ELSE
-				-- 같지 않다면 lineequaltpoint를 초기화 해주고 linestring의 처음부터 다시 검사.
-					lineequaltpoint := null;
-					
-					j := 1;
-					nowtpointnumber := nowtpointnumber+1;
-				END IF;
-			END IF;
-		END LOOP;
-		
-		IF( lineequaltpoint IS NOT NULL ) THEN
-			--EXECUTE 'select st_pointn( $1, $2 )' INTO searchpoint USING diffline, numberofdifflinetopoint;
-
-			EXECUTE 'select st_coveredby( $1, $2 )' INTO is_line_tp_equal USING intersect_tpseg[nowtpointnumber].p, diffline;
-
-			IF(is_line_tp_equal) THEN
-				EXECUTE 'select array_append( $1, $2)' INTO lineequaltpoint USING lineequaltpoint, intersect_tpseg[nowtpointnumber];
-				nowtpointnumber := nowtpointnumber+1;
-			ELSE
-				
-			END IF;
-			EXECUTE 'select array_upper( $1, 1 )' INTO lineequaltpoint_size USING lineequaltpoint;			
-		END IF;
-		sequenceOfdiff_starttime[i] := lineequaltpoint[1].ptime;
-		sequenceOfdiff_endtime[i] := lineequaltpoint[lineequaltpoint_size].ptime;
-
-		i := i + 1;
-	END LOOP;
-
-	starttime := sequenceOfdiff_starttime;
-	endtime := sequenceOfdiff_endtime;
-		
-END
-$$
-LANGUAGE 'plpgsql';
-
-
-CREATE OR REPLACE FUNCTION slice(trajectory, timestamp without time zone, timestamp without time zone, out trajec tpoint[])
-  RETURNS setof tpoint[] AS
-$BODY$
-DECLARE
-	traj	alias for $1;
-	start_time	alias for $2;
-	end_time	alias for $3;
-
-	c_trajectory		trajectory;
-	c_trajectory_segtable_name	text;
-	user_table_data		record;
-	data				RECORD;
-	
-	tp_seg		tpoint[];
-	new_tpseg	tpoint[];
-	i		integer;
-	sql		text;
-	k		integer;
-
-	
-BEGIN
-sql := 'select relname from pg_catalog.pg_class c
-	where c.oid = '|| traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO c_trajectory_segtable_name;
-	
-		sql := 'select * from ' || quote_ident(c_trajectory_segtable_name) || ' where mpid = ' || traj.moid || 
-			' order by start_time';
-
-		FOR data IN EXECUTE sql LOOP
-			IF( data.start_time <= end_time OR data.end_time >= start_time ) THEN
-				tp_seg := data.tpseg;
-
-				i := 1;
-
-				WHILE( i <= data.mpcount ) LOOP
-					IF( tp_seg[i].ptime >= start_time AND tp_seg[i].ptime <= end_time ) THEN
-						IF( new_tpseg = NULL  ) THEN
-							new_tpseg := tp_seg[1:i];
-						ELSE
-							EXECUTE 'select array_append($1, $2)'
-							INTO new_tpseg USING new_tpseg, tp_seg[i];
-						END IF;
-					END IF;
-					i := i+1;
-				END LOOP;
-			END IF;
-		END LOOP;
-
-		--RETURN new_tpseg;
---		sql := 'select array_append($1, $2)';
---		EXECUTE sql INTO trajec using trajec, new_tpseg;
-		trajec := new_tpseg;
-
-		return next;
-	return;
-END
-$BODY$
-LANGUAGE 'plpgsql' VOLATILE
-COST 100;
-
-
-CREATE OR REPLACE FUNCTION stay(trajectory, text) RETURNS setof text AS
-$$
-DECLARE
-	user_traj	alias for $1;
-	user_rect	alias for $2;
-	f_trajectory_segtable_name	text;
-	sql				text;
-	data				record;
-	rect_text			text;
-	time_stamp	TIMESTAMP;
-	time_stamp2	TIMESTAMP;
-	rect_origin	geometry;
-BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-	where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
-
-	EXECUTE 'select ST_GeomFromText(' || quote_literal(user_rect) || ')'
-	into rect_origin;
-
-	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
-	FOR data IN EXECUTE sql LOOP
-		IF( ST_Intersects(rect_origin, data.rect) = TRUE ) THEN
-			--EXECUTE 'select getbbox( $1 )'
-			EXECUTE 'select box( $1 )'
-			INTO rect_text USING data.rect;
-			return next rect_text;
-		END IF;
-
-	END LOOP;
-
-END
-$$
-LANGUAGE 'plpgsql';
 
 
 --tpoint[]를 입력하면 linestring를 리턴해주는 함수

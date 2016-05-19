@@ -29,7 +29,7 @@ $$
 DECLARE
 	input_tpoint 	alias for $1;
 BEGIN
-	RETURN input_tpoint.point;
+	RETURN input_tpoint.pnt;
 END
 $$
 LANGUAGE 'plpgsql';
@@ -53,7 +53,7 @@ $$
 DECLARE
 	input_tpoint 	alias for $1;
 BEGIN
-	RETURN input_tpoint.t;
+	RETURN input_tpoint.ts;
 END
 $$
 
@@ -511,6 +511,61 @@ LANGUAGE 'plpgsql';
 
 
 
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : TJ_Passes(tpoint[], geometry)
+-- RETURNS : tpoint[], geometry -> boolean
+-- CREATED BY YOO KI HYUN
+
+-- START TJ_Passes:
+
+-- DROP FUNCTION TJ_Passes(tpoint[], geometry);
+
+CREATE OR REPLACE FUNCTION TJ_Passes(tpoint[], geometry) RETURNS boolean AS
+$$
+DECLARE
+	tpoint_arr	alias for $1;
+	temp_geom	alias for $2;
+
+	temp_line	geometry;
+	temp_bool	boolean;
+	
+BEGIN
+	temp_line := TJ_trajectory(tpoint_arr);
+
+
+	temp_bool := ST_Intersects(temp_line, temp_geom);
+	
+	RETURN temp_bool;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+-- END TJ_Passes:
+------------------------------------------------------------------------------------------
+
+
+
+-- FUNCTION DEFINITION
+-- DESCRIPTION : 
+-- NAME : _TJ_Passes(geometry, geometry, tpoint[])
+-- RETURNS : geometry, geometry, tpoint[] -> boolean
+-- CREATED BY YOO KI HYUN
+
+-- START _TJ_Passes:
+
+-- DROP FUNCTION _TJ_Passes(geometry, geometry, tpoint[]);
+
+CREATE OR REPLACE FUNCTION _TJ_Passes(geom1 geometry, geom2 geometry, tpoint_arr tpoint[])
+  RETURNS boolean AS
+'SELECT $1 && $2 AND TJ_passes($3,$2)'
+  LANGUAGE sql IMMUTABLE
+  COST 100;
+  
+-- END _TJ_Passes:
+------------------------------------------------------------------------------------------
 
 
 
