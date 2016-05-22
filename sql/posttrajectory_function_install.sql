@@ -69,22 +69,25 @@ END
 $$
 LANGUAGE 'plpgsql';
 
+/*
+	Trigger Procedure : delete_mpoint_seg()
+	Modify by : khyoo1221@gmail.com
+	Modified Date : -
+
+	To Do................
+*/
 
 CREATE OR REPLACE FUNCTION delete_mpoint_seg() RETURNS trigger AS $delete_mpoint_seg$
-DECLARE
-	segtable_name		text;
-	column_name		text;
+DECLARE		
 	delete_trajectory	trajectory;
 	delete_id		integer;
-
+	
+	records			record;
 	delete_record		record;
 	
     BEGIN
-	execute 'select f_trajectory_segtable_name from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
-	into segtable_name;
-
-	execute 'select f_trajectory_column from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
-	into column_name;
+	execute 'select f_trajectory_segtable_name, f_trajectory_column from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME)
+	into records;
 
 	-- traj값 가져오는부분 수정해야함.
 	delete_record := OLD;
@@ -97,7 +100,7 @@ DECLARE
 	delete_trajectory := OLD.traj;
 	delete_id := delete_trajectory.moid;
 	
-	execute 'DELETE FROM ' || quote_ident(segtable_name) || ' WHERE mpid = ' || delete_id;
+	execute 'DELETE FROM ' || quote_ident(records.f_trajectory_segtable_name) || ' WHERE mpid = ' || delete_id;
 
 	return NULL;
 
@@ -120,7 +123,7 @@ DECLARE
 	moid			text;
 	
 	sql_text		text;
-	tRecord			record;
+	records			record;
 	
  BEGIN
 	
@@ -129,11 +132,11 @@ DECLARE
 	sql_text := 'select f_segtableoid, f_trajectory_column, f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(tb_name);
 	
 	--f_segtableoid, f_trajectory_column, f_sequence_name 가져온다. 
-	execute sql_text into tRecord;
+	execute sql_text into records;
 	
-	segtable_oid := tRecord.f_segtableoid;
-	segcolumn_name := tRecord.f_trajectory_column;
-	sequence_name := tRecord.f_sequence_name;
+	segtable_oid := records.f_segtableoid;
+	segcolumn_name := records.f_trajectory_column;
+	sequence_name := records.f_sequence_name;
 
 	sql_text := 'select nextval(' || quote_literal(sequence_name) || ')';
 		
@@ -155,38 +158,6 @@ DECLARE
 END
 $$
 LANGUAGE 'plpgsql';
-
-
-
-CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
-	# 해당 테이블의 이름을 가져온다.
-	table_name = TD["table_name"]
-
-	#segtable_oid를 가져온다. 
-	plan = plpy.prepare("select f_segtableoid::oid from trajectory_columns where f_table_name = $1", ["text"])
-	segtable_oid = plpy.execute(plan, [table_name])
-
-	#segcolumn_name를 가져온다.
-	plan = plpy.prepare("select f_trajectory_column::text from trajectory_columns where f_table_name = $1", ["text"])
-	segcolumn_name = plpy.execute(plan, [table_name])
-
-	#sequence_name를 가져온다.
-	plan = plpy.prepare("select f_sequence_name from trajectory_columns where f_table_name = $1", ["text"])	
-	sequence_name = plpy.execute(plan, [table_name])
-
-	#sequence_name를 이용하여 삽입할 sequence를 결정한다.
-	plan = plpy.prepare("select nextval($1)", ["text"])
-	moid = plpy.execute(plan, [sequence_name[0]["f_sequence_name"]])
-
-	#user maked column(trajectoryColumn)의 값을 삽입해준다.
-	TD["new"][segcolumn_name[0]['f_trajectory_column']] = (int(segtable_oid[0]["f_segtableoid"]), int(moid[0]["nextval"]))
-	
-	#TD["new"][segcolumn_name[0]['f_trajectory_column']] = int(segtable_oid[0]["f_segtableoid"])
-	#TD["new"] = {[segcolumn_name[0]['f_trajectory_column']]:int(segtable_oid[0]["f_segtableoid"])}
-	
-	return "MODIFY"
-	
-$$ LANGUAGE plpythonu;
 
 
 -- AddTrajectoryColumn 함수 array 크기를 지정해주지 않는다.
@@ -309,10 +280,13 @@ BEGIN
 		)';
 
 --	execute pg_sleep(1);
-	
+	f_segtable_oid := table_oid;
+	/*
 	sql := 'select '|| quote_literal(f_trajectory_segtable_name) ||'::regclass::oid';
 	RAISE DEBUG '%', sql;
 	EXECUTE sql INTO f_segtable_oid;
+	*/
+
 
 	-- Add record in geometry_columns  compress 추가 어떻게 할건지.
 	sql := 'INSERT INTO trajectory_columns (f_table_catalog, f_table_schema, f_table_name, ' ||
@@ -491,9 +465,12 @@ BEGIN
 	EXECUTE 'ALTER TABLE ' || f_trajectory_segtable_name || '
 		ALTER COLUMN tpseg SET STORAGE EXTERNAL';
 	
+	f_segtable_oid := table_oid;
+	/*
 	sql := 'select '|| quote_literal(f_trajectory_segtable_name) ||'::regclass::oid';
 	RAISE DEBUG '%', sql;
 	EXECUTE sql INTO f_segtable_oid;
+	*/
 
 	-- Add record in geometry_columns  compress 추가 어떻게 할건지.
 	sql := 'INSERT INTO trajectory_columns (f_table_catalog, f_table_schema, f_table_name, ' ||
