@@ -105,6 +105,58 @@ DECLARE
 $delete_mpoint_seg$ LANGUAGE plpgsql;
 
 
+/*
+	Trigger Procedure : Insert_Trigger()
+	Modify by : khyoo1221@gmail.com
+	Modified Date : 2016-05-22
+*/
+
+CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
+DECLARE
+	tb_name			text;
+	segtable_oid		text;
+	segcolumn_name		text;
+	sequence_name		text;
+	moid			text;
+	
+	sql_text		text;
+	tRecord			record;
+	
+ BEGIN
+	
+	tb_name := 'taxi';
+
+	sql_text := 'select f_segtableoid, f_trajectory_column, f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(tb_name);
+	
+	--f_segtableoid, f_trajectory_column, f_sequence_name 가져온다. 
+	execute sql_text into tRecord;
+	
+	segtable_oid := tRecord.f_segtableoid;
+	segcolumn_name := tRecord.f_trajectory_column;
+	sequence_name := tRecord.f_sequence_name;
+
+	sql_text := 'select nextval(' || quote_literal(sequence_name) || ')';
+		
+	--sequence_name를 이용하여 삽입할 sequence를 결정한다.
+	execute sql_text into moid;
+
+	/*
+	RAISE NOTICE 'sql_text : %', sql_text;
+	RAISE NOTICE 'segtable_oid : %', segtable_oid;
+	RAISE NOTICE 'segcolumn_name : %', segcolumn_name;
+	RAISE NOTICE 'sequence_name : %', sequence_name;
+	RAISE NOTICE 'moid : %', moid;
+	*/
+	
+	--user maked column(trajectoryColumn)의 값을 삽입해준다.
+	NEW.traj = (segtable_oid, moid);	
+		
+	return NEW;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
 
 CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
 	# 해당 테이블의 이름을 가져온다.
