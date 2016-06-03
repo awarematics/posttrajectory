@@ -6,17 +6,17 @@ DECLARE
 	input_trajectory		alias for $1;
 	input_polygon			alias for $2;
 
-	session_id		text;
-	session_key 		text;
-	session_value		text;
+	session_id			text;
+	session_key 			text;
+	session_value			text;
 		
 	traj_prefix			char(10);
 	traj_suffix			char(10);
 	
-	traj_segtable_name	text;
+	traj_segtable_name		text;
 	
 	sql_text			varchar;
-	text_from_geom		text;
+	text_from_geom			text;
 		
 	cnt				integer;	
 BEGIN		
@@ -26,21 +26,10 @@ BEGIN
 	traj_segtable_name := traj_prefix || input_trajectory.segtableoid || traj_suffix;
 	
 	text_from_geom := box2d(input_polygon);
-/*
-	BEGIN
-		session_id := current_setting('session.id');
-	EXCEPTION when undefined_object then
-		perform set_config('session.id', to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH12:MI:SS'), false);	     
-		session_id := current_setting('session.id');
-	END;
-*/
-	-- raise notice 'session_id: %', session_id;		
 
-	-- session_key := session_id || '.' || traj_segtable_name || '.pass.' || text_from_geom;
+	session_key := traj_segtable_name || '.passes.' || text_from_geom;
 
-	session_key := traj_segtable_name || '.pass.' || text_from_geom;
-
-	-- raise notice 'session_key 2 : %', session_key;		
+	-- raise notice 'session_key : %', session_key;		
 	
 	BEGIN
 		session_value := current_setting(session_key);
@@ -55,15 +44,15 @@ BEGIN
 
 		sql_text := 'CREATE TEMPORARY TABLE tmp_segtable as ';
 		sql_text := sql_text || 'SELECT mp.mpid, mp.tpseg FROM ' || traj_segtable_name || ' mp';
-		sql_text := sql_text || ' WHERE mp.rect && $1 AND TT_Passes(mp.tpseg, $1)' ;
+		sql_text := sql_text || ' WHERE mp.rect && $1';
 		-- raise notice '%', sql_text;		
 
 		EXECUTE sql_text USING input_polygon;
 	END IF;
 
-	sql_text := 'SELECT COUNT(*) FROM tmp_segtable tmp WHERE tmp.mpid = ' || input_trajectory.moid;
+	sql_text := 'SELECT COUNT(*) FROM tmp_segtable tmp WHERE tmp.mpid = ' || input_trajectory.moid || ' AND TT_Passes(tmp.tpseg, $1)';
 	
-	EXECUTE sql_text INTO cnt;
+	EXECUTE sql_text INTO cnt USING input_polygon;
 
 	IF cnt > 0 THEN
 		RETURN true;
