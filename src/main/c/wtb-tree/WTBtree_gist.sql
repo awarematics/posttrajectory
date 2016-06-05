@@ -71,19 +71,18 @@ CREATE TYPE khyoo (
 -- OPERATOR
 ----------------------------------------------------------------------------------
 
-CREATE OPERATOR CLASS WTBtree_gist_ops
-DEFAULT FOR TYPE bpchar USING gist
-AS
+CREATE OPERATOR CLASS gist_box2d_ops
+	FOR TYPE geometry USING GIST AS	
 	OPERATOR	1	<  ,
 	OPERATOR	2	<= ,
 	OPERATOR	3	=  ,
 	OPERATOR	4	>= ,
 	OPERATOR	5	>  ,
-	FUNCTION	1	WTBtree_consistent (internal, bpchar, int2, oid, internal),
-	FUNCTION	2	WTBtree_union (internal, internal),
-	FUNCTION	3	WTBtree_compress (internal),
-	FUNCTION	4	WTBtree_decompress (internal),
-	FUNCTION	5	WTBtree_penalty (internal, internal, internal),
-	FUNCTION	6	WTBtree_picksplit (internal, internal),
-	FUNCTION	7	WTBtree_same (internal, internal, internal);
-
+	FUNCTION	1	gbt_bpchar_consistent (internal, bpchar , int2, oid, internal),
+	FUNCTION	2	gbt_text_union (bytea, internal),
+	FUNCTION	3	gbt_bpchar_compress (internal),
+	FUNCTION	4	gbt_var_decompress (internal),
+	FUNCTION	5	gbt_text_penalty (internal, internal, internal),
+	FUNCTION	6	gbt_text_picksplit (internal, internal),
+	FUNCTION	7	gbt_text_same (internal, internal, internal),
+	STORAGE			box2d;
