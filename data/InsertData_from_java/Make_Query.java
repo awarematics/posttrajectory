@@ -5,6 +5,13 @@ public class Make_Query {
 
 	Tokenize_data tokenized = new Tokenize_data();
 
+	public String get_seqNum(String table_name) {
+		
+		query = "select currval('taxi_traj_mpointid_seq');";
+
+		return query;
+	}
+	
 	public String find_TaxiNum(String data, String table_name) {
 		tokenized.tokenize(data);
 
@@ -25,6 +32,30 @@ public class Make_Query {
 
 		query = "insert into " + table_name + " values (" + idx + ", '" + tokenized.getOid() + "', '"
 				+ tokenized.getOid() + "', '" + tokenized.getOid() + "');";
+
+		return query;
+	}
+
+	public String insert_traj(int mpId, int segId, int next_segId, int before_segId, int mpCnt, String rect,
+			String start_time, String end_time, String tpseg) {
+
+		query = "insert into mpseq_18646_traj values (" + mpId + ", " + segId + ", " + next_segId + ", " + before_segId
+				+ ", " + mpCnt + ", " + rect + ", timestamp '" + start_time + "', timestamp '" + end_time + "', "
+				+ tpseg + ");";
+
+		return query;
+	}
+
+	public String make_polygon(String q) {
+
+		query = "box2d(ST_GeomFromText('LINESTRING(" + q + ")'))";
+
+		return query;
+	}
+
+	public String make_tpseg(String q) {
+
+		query = "ARRAY[ " + q + " ]::tpoint[]";
 
 		return query;
 	}
