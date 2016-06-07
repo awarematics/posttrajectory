@@ -14,6 +14,9 @@ drop table taxi cascade;
 
 
 
+select * from taxi;
+delete from taxi;
+
 --- 테스트용 데이터
 
 create table taxi(
@@ -24,10 +27,7 @@ create table taxi(
 );
 
 -- 컬럼 추가
-select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
-
-select * from taxi;
-delete from taxi;
+select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 150);
 
 
 -- 데이터구축 (INSERT)

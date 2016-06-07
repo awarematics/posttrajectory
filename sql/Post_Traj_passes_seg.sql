@@ -50,7 +50,7 @@ BEGIN
 		EXECUTE sql_text USING input_polygon;
 	END IF;
 
-	sql_text := 'SELECT COUNT(*) FROM tmp_segtable tmp WHERE tmp.mpid = ' || input_trajectory.moid || ' AND TT_Passes(tmp.tpseg, $1)';
+	sql_text := 'SELECT COUNT(*) FROM tmp_segtable tmp WHERE tmp.mpid = ' || input_trajectory.moid || ' AND TJ_Passes(tmp.tpseg, $1)';
 	
 	EXECUTE sql_text INTO cnt USING input_polygon;
 

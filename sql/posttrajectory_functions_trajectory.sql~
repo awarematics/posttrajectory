@@ -353,7 +353,7 @@ BEGIN
 		tp1 := TJ_atInstant(mp1, timeArr[i]);
 		tp2 := TJ_atInstant(mp2, timeArr[i]);
 		
-		distance = ST_Distance( tp1.pnt, tp2.pnt );
+		distance = ST_Distance( tp1.point, tp2.point );
 		aMreal[i] := distance;
 	END LOOP;
 

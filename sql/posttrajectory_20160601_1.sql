@@ -7,7 +7,13 @@ select taxi_id, taxi_number, traj, taxi_model from taxi
 
 
 select count(*) from taxi 
- where Post_TJ_pass(taxi.traj, st_geomfromtext('polygon((116.44989 39.86646,116.44989 39.87334,118.47135 39.87334,118.47135 39.86646,116.44989 39.86646))'))
+ where Post_Traj_passes_base(taxi.traj, st_geomfromtext('polygon((116.44989 39.86646,116.44989 39.87334,118.47135 39.87334,118.47135 39.86646,116.44989 39.86646))'))
+
+select count(*) from taxi 
+ where Post_Traj_passes_id(taxi.traj, st_geomfromtext('polygon((116.44989 39.86646,116.44989 39.87334,118.47135 39.87334,118.47135 39.86646,116.44989 39.86646))'))
+
+select count(*) from taxi 
+ where Post_Traj_passes_seg(taxi.traj, st_geomfromtext('polygon((116.44989 39.86646,116.44989 39.87334,118.47135 39.87334,118.47135 39.86646,116.44989 39.86646))'))
 
 
  select count(*) from mpseq_1413448_traj

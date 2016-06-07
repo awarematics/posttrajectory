@@ -6,6 +6,24 @@ CREATE TYPE tpoint as(
 );
 
 
+-- TYPE DEFINITION
+-- DESCRIPTION : 
+-- NAME : periods
+-- CREATED BY YOO KI HYUN
+
+-- START TYPE periods:
+
+DROP TYPE IF EXISTS periods;
+
+CREATE TYPE periods as(
+	startTime	timestamp,
+	endTime		timestamp
+);
+
+-- END TYPE periods:
+------------------------------------------------------------------------------------------
+
+
 -- TYPE trajectory 정의 --
 CREATE TYPE trajectory as(
 	segtableoid	oid,
@@ -273,7 +291,8 @@ BEGIN
 			next_segid	integer,
 			before_segid	integer,
 			mpcount		integer,
-			rect		geometry,
+			rect		box2d,
+			rect_geom	geometry,
 			start_time	timestamp with time zone,
 			end_time	timestamp with time zone,
 			tpseg		tpoint[]
@@ -454,7 +473,8 @@ BEGIN
 			next_segid	integer,
 			before_segid	integer,
 			mpcount		integer,
-			rect		geometry,
+			rect		box2d,
+			rect_geom	geometry,
 			start_time	timestamp with time zone,
 			end_time	timestamp with time zone,
 			tpseg		tpoint[]
@@ -633,7 +653,12 @@ $BODY$
 DECLARE
 	f_trajectroy alias for $1;
 	tp  alias for $2;
-	f_trajectory_segtable_name text;
+	
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	table_oid text;
 	mpid	integer;
 	segid	integer;
@@ -648,11 +673,11 @@ DECLARE
 	new_segid	integer;
 BEGIN
 
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| f_trajectroy.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
-	
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid || traj_suffix;
+		
 	-- 현재 trajectory_segtable의 mpid값을 가져온다 
 	sql := 'select mpid from ' || quote_ident(f_trajectory_segtable_name) || 
 		' where mpid = ' || f_trajectroy.moid;
@@ -755,7 +780,11 @@ DECLARE
 	end_time			alias for $3;
 	result_tp			tpoint[];
 
-	f_trajectory_segtable_name	text;
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	data				RECORD;
 	tpseg_data			tpoint[];
 	sql				text;
@@ -775,11 +804,12 @@ DECLARE
 	new_rect			geometry;
 
 BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		WHERE c.oid = '|| c_trajectory.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
 
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
+	
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) ||
 		' WHERE mpid = '|| c_trajectory.moid;
 
@@ -883,7 +913,11 @@ $$
 DECLARE
 	c_trajectory			alias for $1;
 	c_tpoint			alias for $2;
-	c_trajectory_segtable_name	text;
+	
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	c_trajectory_segtable_name	char(200);
 
 	sql				text;
 	i				integer;
@@ -894,11 +928,11 @@ DECLARE
 	
 BEGIN
 
-	sql := 'select relname from pg_catalog.pg_class c
-		WHERE c.oid = '|| c_trajectory.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO c_trajectory_segtable_name;
-
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
+	
 	sql := 'select * from ' || quote_ident(c_trajectory_segtable_name) || ' where mpid = ' || c_trajectory.moid;
 	
 	FOR data IN EXECUTE sql LOOP
@@ -984,8 +1018,11 @@ DECLARE
 	c_start_time			alias for $2;
 	c_end_time			alias for $3;
 	c_tpoint			alias for $4;
-	c_trajectory_segtable_name	text;
-
+	
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	c_trajectory_segtable_name	char(200);
 
 	tpoint_max_size			integer;
 	tpoint_min_size			integer;
@@ -1010,11 +1047,11 @@ DECLARE
 	new_before_segid		integer;
 	new_row_segid			integer;
 BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		WHERE c.oid = '|| c_trajectory.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO c_trajectory_segtable_name;
-
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
+	
 	EXECUTE 'select array_upper($1, 1)'
 	INTO tpoint_max_size USING c_tpoint; 
 
@@ -1191,8 +1228,11 @@ DECLARE
 	start_time	alias for $2;
 	end_time	alias for $3;
 
-
-	c_trajectory_segtable_name	text;
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	c_trajectory_segtable_name	char(200);
+	
 	data				RECORD;
 	tp_seg		tpoint[];
 	new_tpseg	tpoint[];
@@ -1200,11 +1240,11 @@ DECLARE
 	sql		text;
 	
 BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		WHERE c.oid = '|| c_trajectory.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO c_trajectory_segtable_name;
-
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
+	
 	sql := 'select * from ' || quote_ident(c_trajectory_segtable_name) || ' where mpid = ' || c_trajectory.moid || 
 		' order by start_time';
 
@@ -1252,18 +1292,21 @@ DECLARE
 	select_tpoint			tpoint;
 	return_data			text;
 
-	f_trajectory_segtable_name	text;
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	sql				text;
 	data				record;
 
 	return_value			tpoint[];
 BEGIN
 	
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| f_trajectory.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
-
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid || traj_suffix;
 
 	EXECUTE 'select st_makebox2d(st_point($1, $2), st_point($3, $4))'
 	into user_rect using x1, y1, x2, y2;
@@ -1305,17 +1348,22 @@ $BODY$
 DECLARE
 	user_traj			alias for $1;
 
-	f_trajectory_segtable_name	text;
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	sql			text;
 
 	end_time		TIMESTAMP with time zone;
 
 	
 BEGIN	
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
+	
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 
 	sql := 'select end_time from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid || ' and next_segid is null';
 	EXECUTE sql INTO end_time;
@@ -1333,18 +1381,22 @@ $$
 DECLARE
 	user_traj			alias for $1;
 	input_geometry			alias for $2;
-	f_trajectory_segtable_name	text;
-
+	
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	sql				text;
 	data				record;
 	isIntersect			boolean;
 	intersect_tpseg			tpoint[];
 
 BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
 	FOR data IN EXECUTE sql LOOP
@@ -1401,15 +1453,20 @@ CREATE OR REPLACE FUNCTION getRect_trajectory(trajectory) RETURNS setof box2d AS
 $$
 DECLARE
 	user_traj			alias for $1;
-	f_trajectory_segtable_name	text;
+	
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	sql				text;
 	data				record;
 	rect				box2d;
 BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
 	FOR data IN EXECUTE sql LOOP
@@ -1433,17 +1490,21 @@ $BODY$
 DECLARE
 	user_traj			alias for $1;
 
-	f_trajectory_segtable_name	text;
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
 	sql			text;
 
 	start_time		TIMESTAMP with time zone;
 
 	
 BEGIN	
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 
 	sql := 'select start_time from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid || ' and before_segid is null';
 	EXECUTE sql INTO start_time;
@@ -1545,7 +1606,11 @@ $$
 DECLARE
 	user_traj			alias for $1;
 	input_geometry			alias for $2;
-	f_trajectory_segtable_name	text;
+	
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
 
 	sql				text;
 	data				record;
@@ -1553,10 +1618,11 @@ DECLARE
 	intersect_tpseg			tpoint[];
 	
 BEGIN
-	sql := 'select relname from pg_catalog.pg_class c
-		where c.oid = '|| user_traj.segtableoid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_trajectory_segtable_name;
+
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
 	FOR data IN EXECUTE sql LOOP

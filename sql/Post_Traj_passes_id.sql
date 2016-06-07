@@ -43,7 +43,7 @@ BEGIN
 
 		sql_text := 'CREATE TEMPORARY TABLE tmp_segtable as ';
 		sql_text := sql_text || 'SELECT mp.mpid FROM ' || traj_segtable_name || ' mp';
-		sql_text := sql_text || ' WHERE mp.rect && $1 AND TT_Passes(mp.tpseg, $1)';
+		sql_text := sql_text || ' WHERE mp.rect && $1 AND TJ_Passes(mp.tpseg, $1)';
 		-- raise notice '%', sql_text;		
 
 		EXECUTE sql_text USING input_polygon;
