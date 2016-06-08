@@ -26,12 +26,12 @@
 #include "access/itup.h"
 #include "access/skey.h"
 
-//#include "../postgis_config.h"
+#include "../postgis_config.h"
 
 /*#define POSTGIS_DEBUG_LEVEL 4*/
 
 #include "liblwgeom.h"         /* For standard geometry types. */
-//#include "lwgeom_pg.h"       /* For debugging macros. */
+#include "lwgeom_pg.h"       /* For debugging macros. */
 #include "gserialized_gist.h"	     /* For utility functions. */
 #include "geography.h"
 
@@ -56,10 +56,10 @@
 /*
 ** For debugging
 */
-
+#if POSTGIS_DEBUG_LEVEL > 0
 static int geog_counter_leaf = 0;
 static int geog_counter_internal = 0;
-
+#endif
 
 /*
 ** ND Index key type stub prototypes
@@ -1704,16 +1704,18 @@ Datum gserialized_gist_picksplit(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(gidx_in); 
 Datum gidx_in(PG_FUNCTION_ARGS)
 {
-printf("gidx_in\n");
-	ereport(ERROR,(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-	               errmsg("function gidx_in not implemented")));
-	PG_RETURN_POINTER(NULL);
+//printf("gidx_in\n");
+  char *str = PG_GETARG_CSTRING(0);
+  GIDX *result;
+
+  result = (GIDX *) palloc(sizeof(GIDX));
+  PG_RETURN_POINTER(result);
 }
 
 PG_FUNCTION_INFO_V1(gidx_out); 
 Datum gidx_out(PG_FUNCTION_ARGS)
 {
-printf("gidx_out\n");
+//printf("gidx_out\n");
   GIDX *box = (GIDX *) PG_GETARG_POINTER(0);
   char *result = gidx_to_string(box);
   PG_RETURN_CSTRING(result);

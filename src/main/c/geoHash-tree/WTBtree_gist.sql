@@ -42,30 +42,6 @@ RETURNS internal
 AS :'WTBtree_LIB','WTBtree_same'
 LANGUAGE C IMMUTABLE STRICT;
 
-----------------------------------------------------------------------------------
--- khyoo
-----------------------------------------------------------------------------------
-
-CREATE TYPE khyoo;
-
-CREATE OR REPLACE FUNCTION khyoo_in(cstring)
-	RETURNS khyoo
-	AS :'WTBtree_LIB','khyoo_in'
-	LANGUAGE 'c' IMMUTABLE STRICT; 
-
-CREATE OR REPLACE FUNCTION khyoo_out(khyoo)
-	RETURNS cstring
-	AS :'WTBtree_LIB','khyoo_out'
-	LANGUAGE 'c' IMMUTABLE STRICT; 
-
-CREATE TYPE khyoo (
-	internallength = 16,
-	input = khyoo_in,
-	output = khyoo_out,
-	storage = plain
-);
-
-
 
 ----------------------------------------------------------------------------------
 -- OPERATOR
