@@ -1,0 +1,69 @@
+﻿\set WTBtree_LIB '/usr/local/posttrajectory/test/WTBtree_gist/lib/WTBtree_gist'
+
+
+CREATE TABLE wtraj (
+	id int,
+	wk char(12)
+);
+
+
+CREATE OR REPLACE FUNCTION WTBtree_consistent(internal,bpchar,int2,oid,internal)
+RETURNS bool
+AS :'WTBtree_LIB','WTBtree_consistent'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION WTBtree_compress(internal)
+RETURNS internal
+AS :'WTBtree_LIB','WTBtree_compress'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION WTBtree_decompress(internal)
+RETURNS internal
+AS :'WTBtree_LIB','WTBtree_decompress'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION WTBtree_penalty(internal,internal,internal)
+RETURNS internal
+AS :'WTBtree_LIB','WTBtree_penalty'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION WTBtree_picksplit(internal, internal)
+RETURNS internal
+AS :'WTBtree_LIB','WTBtree_picksplit'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION WTBtree_union(internal, internal)
+RETURNS internal
+AS :'WTBtree_LIB','WTBtree_union'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION WTBtree_same(internal, internal, internal)
+RETURNS internal
+AS :'WTBtree_LIB','WTBtree_same'
+LANGUAGE C IMMUTABLE STRICT;
+
+
+----------------------------------------------------------------------------------
+-- OPERATOR
+----------------------------------------------------------------------------------
+
+CREATE OPERATOR CLASS gist_tpArr_ops_3d
+	FOR TYPE tpoint[] USING GIST AS
+	STORAGE 	gidx,	
+--	OPERATOR        3        &&&	,
+--	OPERATOR        6        ~=	,
+--	OPERATOR        7        ~	,
+--	OPERATOR        8        @	,
+	-- Availability: 2.2.0
+--	OPERATOR        13       <<->> FOR ORDER BY pg_catalog.float_ops,
+	-- Availability: 2.2.0
+--	OPERATOR        20       |=| FOR ORDER BY pg_catalog.float_ops,
+	-- Availability: 2.2.0	FUNCTION        8        geometry_gist_distance_nd (internal, geometry, int4),
+	FUNCTION        1        geometry_gist_consistent_nd (internal, geometry, int4),
+	FUNCTION        2        geometry_gist_union_nd (bytea, internal),
+	FUNCTION        3        geometry_gist_compress_nd (internal),
+	FUNCTION        4        geometry_gist_decompress_nd (internal),
+	FUNCTION        5        geometry_gist_penalty_nd (internal, internal, internal),
+	FUNCTION        6        geometry_gist_picksplit_nd (internal, internal),
+	FUNCTION        7        geometry_gist_same_nd (geometry, geometry, internal);
+
