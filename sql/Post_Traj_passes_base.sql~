@@ -26,7 +26,7 @@ BEGIN
 
 	-- sql_text := 'SELECT COUNT(*) FROM ' || traj_segtable_name || ' mp WHERE mp.mpid = ' || input_trajectory.moid || ' AND TJ_Passes((mp).tpseg, $1) AND mpcount = 150';
 
-	sql_text := 'SELECT COUNT(*) FROM ' || traj_segtable_name || ' mp WHERE mp.mpid = ' || input_trajectory.moid || ' AND mp.rect TJ_Passes((mp).tpseg, $1)';
+	sql_text := 'SELECT COUNT(*) FROM ' || traj_segtable_name || ' mp WHERE mp.mpid = ' || input_trajectory.moid || ' AND TJ_Passes((mp).tpseg, $1)';
 	
 	EXECUTE sql_text INTO cnt USING input_polygon;
 
