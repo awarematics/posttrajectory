@@ -1,4 +1,46 @@
 ﻿
+/*
+
+CREATE TYPE tpoint;
+CREATE TYPE trajectory;
+CREATE TABLE trajectory_columns;
+CREATE OR REPLACE FUNCTION getBox2D(tpoint[]) RETURNS geometry;
+CREATE OR REPLACE FUNCTION delete_mpoint_seg() RETURNS trigger;
+CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger;
+CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
+	integer, character varying, integer) RETURNS text;
+CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
+	integer, character varying, integer, integer) RETURNS text;
+CREATE OR REPLACE FUNCTION tpoint(geometry, timestamp) RETURNS tpoint;
+CREATE OR REPLACE FUNCTION append(trajectory, geometry, timestamp) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION append(trajectory, tpoint[]) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION append(trajectory, tpoint) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, integer) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, timestamp) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION modify(trajectory, tpoint) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION modify(trajectory, tpoint[]) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION modify(trajectory, timestamp, timestamp, tpoint[]) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION trajectory_select(trajectory, timestamp, timestamp) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[];
+CREATE OR REPLACE FUNCTION getRect_trajectory(trajectory) RETURNS setof box2d;
+CREATE OR REPLACE FUNCTION getStartTime(trajectory) RETURNS timestamp without time zone;
+CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone;
+CREATE OR REPLACE FUNCTION getTimeStamp(integer) RETURNS timestamp;
+CREATE OR REPLACE FUNCTION getTimestamp(integer) RETURNS timestamp without time zone;
+create or replace function getTpointArrayInfo(tpoint[]) returns setof text;
+CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[], OUT tpoint text, OUT ptime_timestamp timestamp without time zone) RETURNS SETOF record;
+CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION aa_enter(trajectory, geometry, out starttime timestamp[], out endtime timestamp[]);
+CREATE OR REPLACE FUNCTION slice(trajectory, timestamp without time zone, timestamp without time zone, out trajec tpoint[]) RETURNS setof tpoint[];
+CREATE OR REPLACE FUNCTION stay(trajectory, text) RETURNS setof text;
+CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry;
+
+
+*/
+
+
 -- TYPE tpoint 정의 --
 CREATE TYPE tpoint as(
 	pnt	geometry,			-- Point type
@@ -564,36 +606,6 @@ END
 $$
   LANGUAGE 'plpgsql' VOLATILE STRICT
   COST 100;
-
-
-CREATE OR REPLACE FUNCTION getTimeStamp(integer ) RETURNS timestamp AS
-$$
-DECLARE
-	input_interval		alias for $1;
-
-	base_time		TIMESTAMP with time zone;
-
-	data_time		TIMESTAMP with time zone;
-
-	text_interval		text;
-	
-BEGIN	
-	
-	base_time := '2010-01-01 12:00:00+9';
-	text_interval := input_interval || ' minute';
-
-	EXECUTE 'select TIMESTAMP ' || quote_literal(base_time)
-	INTO base_time;
-	
-
-	EXECUTE 'select TIMESTAMP ' || quote_literal(base_time)  || ' + interval ' || quote_literal(text_interval)
-	INTO data_time;
-
-	RETURN data_time;
-END
-$$
-LANGUAGE 'plpgsql' VOLATILE STRICT
-COST 100;
 
 
 /*
@@ -1343,38 +1355,6 @@ LANGUAGE 'plpgsql' VOLATILE
 COST 100;
   
   
-CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone AS
-$BODY$
-DECLARE
-	user_traj			alias for $1;
-
-	traj_prefix			char(50);
-	traj_suffix			char(50);
-	
-	f_trajectory_segtable_name	char(200);
-	
-	sql			text;
-
-	end_time		TIMESTAMP with time zone;
-
-	
-BEGIN	
-	
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
-		
-	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
-
-	sql := 'select end_time from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid || ' and next_segid is null';
-	EXECUTE sql INTO end_time;
-
-	RETURN end_time;
-END
-$BODY$
-LANGUAGE 'plpgsql' VOLATILE STRICT
-COST 100;
-
-
 --traj와 영역을 주면 해당 영역에 교차하는 tpoint가 있는 segment의 모든 tpoint를 리턴해준다.
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[] AS
 $$
@@ -1480,12 +1460,11 @@ $$
 LANGUAGE 'plpgsql';
 
 
--- Function: gettimestamp(integer)
+-- Function: getStartTime(trajectory) RETURNS timestamp without time zone;
 
--- DROP FUNCTION gettimestamp(integer);
+-- DROP FUNCTION getStartTime(trajectory);
 
-CREATE OR REPLACE FUNCTION getStartTime(trajectory)
-  RETURNS timestamp without time zone AS
+CREATE OR REPLACE FUNCTION getStartTime(trajectory) RETURNS timestamp without time zone AS
 $BODY$
 DECLARE
 	user_traj			alias for $1;
@@ -1516,8 +1495,81 @@ LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
 
-CREATE OR REPLACE FUNCTION gettimestamp(integer)
-  RETURNS timestamp without time zone AS
+-- Function: getEndTime(trajectory) RETURNS timestamp without time zone;
+
+-- DROP FUNCTION getEndTime(trajectory);
+
+CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone AS
+$BODY$
+DECLARE
+	user_traj			alias for $1;
+
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
+	sql			text;
+
+	end_time		TIMESTAMP with time zone;
+
+	
+BEGIN	
+	
+	traj_prefix := current_setting('traj.prefix');
+	traj_suffix := current_setting('traj.suffix');
+		
+	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
+
+	sql := 'select end_time from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid || ' and next_segid is null';
+	EXECUTE sql INTO end_time;
+
+	RETURN end_time;
+END
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE STRICT
+COST 100;
+
+
+-- Function: getTimeStamp(integer) RETURNS timestamp;
+
+-- DROP FUNCTION getTimeStamp(integer);
+
+CREATE OR REPLACE FUNCTION getTimeStamp(integer) RETURNS timestamp AS
+$$
+DECLARE
+	input_interval		alias for $1;
+
+	base_time		TIMESTAMP with time zone;
+
+	data_time		TIMESTAMP with time zone;
+
+	text_interval		text;
+	
+BEGIN	
+	
+	base_time := '2010-01-01 12:00:00+9';
+	text_interval := input_interval || ' minute';
+
+	EXECUTE 'select TIMESTAMP ' || quote_literal(base_time)
+	INTO base_time;
+	
+
+	EXECUTE 'select TIMESTAMP ' || quote_literal(base_time)  || ' + interval ' || quote_literal(text_interval)
+	INTO data_time;
+
+	RETURN data_time;
+END
+$$
+LANGUAGE 'plpgsql' VOLATILE STRICT
+COST 100;
+
+
+-- Function: getTimeStamp(integer) RETURNS timestamp without time zone;
+
+-- DROP FUNCTION getTimeStamp(integer);
+
+CREATE OR REPLACE FUNCTION getTimeStamp(integer) RETURNS timestamp without time zone AS
 $BODY$
 DECLARE
 	input_interval		alias for $1;
@@ -1545,19 +1597,19 @@ END
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE STRICT
   COST 100;
-ALTER FUNCTION gettimestamp(integer) OWNER TO postgres;
+
 
 --mpseg 테이블의 tpseg정보를 텍스트로 보기위한 함수
-create or replace function getTpointArrayInfo(tpoint[]) returns setof text as
+CREATE OR REPLACE FUNCTION getTpointArrayInfo(tpoint[]) returns SETOF text AS
 $$
-declare
+DECLARE
 	tpseg	alias for $1;
 
 	max_size	integer;
 	now_count	integer;
 	return_data	text;
 
-begin
+BEGIN
 	execute 'select array_upper($1, 1)'
 	into max_size using tpseg;
 	now_count := 1;
@@ -1567,7 +1619,7 @@ begin
 		now_count := now_count + 1;
 		return next return_data;
 	end loop;
-end
+END
 $$
 language 'plpgsql';
 
@@ -1575,14 +1627,14 @@ language 'plpgsql';
 CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[],  OUT tpoint text, OUT ptime_timestamp timestamp without time zone)
   RETURNS SETOF record AS
 $BODY$
-declare
+DECLARE
 	tpseg	alias for $1;
 
 	max_size	integer;
 	now_count	integer;
 	return_data	text;
 
-begin
+BEGIN
 	execute 'select array_upper($1, 1)'
 	into max_size using tpseg;
 	now_count := 1;
@@ -1596,7 +1648,7 @@ begin
 	end loop;
 
 	return;
-end
+END
 $BODY$
 LANGUAGE 'plpgsql' VOLATILE;
 
