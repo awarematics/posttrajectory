@@ -333,8 +333,8 @@ BEGIN
 			next_segid	integer,
 			before_segid	integer,
 			mpcount		integer,
-			rect		box2d,
-			rect_geom	geometry,
+			partid		integer,
+			rect		geometry,
 			start_time	timestamp with time zone,
 			end_time	timestamp with time zone,
 			tpseg		tpoint[]
@@ -515,8 +515,8 @@ BEGIN
 			next_segid	integer,
 			before_segid	integer,
 			mpcount		integer,
-			rect		box2d,
-			rect_geom	geometry,
+			partid		integer,
+			rect		geometry,
 			start_time	timestamp with time zone,
 			end_time	timestamp with time zone,
 			tpseg		tpoint[]

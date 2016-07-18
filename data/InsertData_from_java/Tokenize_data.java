@@ -5,8 +5,7 @@ public class Tokenize_data {
 	String oid;
 	String latitude;
 	String longitude;
-	String date_str;
-	String time_str;
+	String date_str;	
 
 	public void tokenize(String data) {
 		String[] result = data.split(",");
@@ -14,8 +13,7 @@ public class Tokenize_data {
 		oid = result[0];
 		latitude = result[2];
 		longitude = result[3];
-		date_str = result[1];
-		// time_str = result[6];
+		date_str = result[1];	
 	}
 
 	public String getOid() {
@@ -33,9 +31,4 @@ public class Tokenize_data {
 	public String getDate_str() {
 		return date_str;
 	}
-
-	// public String getTime_str(){
-	// return time_str;
-	// }
-
 }

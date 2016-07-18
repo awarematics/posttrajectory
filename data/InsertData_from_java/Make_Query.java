@@ -39,15 +39,14 @@ public class Make_Query {
 	public String insert_traj(int mpId, int segId, int next_segId, int before_segId, int mpCnt, String rect,
 			String start_time, String end_time, String tpseg) {
 
-		query = "insert into mpseq_18646_traj values (" + mpId + ", " + segId + ", " + next_segId + ", " + before_segId
-				+ ", " + mpCnt + ", " + rect + ", timestamp '" + start_time + "', timestamp '" + end_time + "', "
+		query = "insert into mpseq_527042_traj values (" + mpId + ", " + segId + ", " + next_segId + ", " + before_segId
+				+ ", " + mpCnt + ", " + rect + ", " + rect + ", timestamp '" + start_time + "', timestamp '" + end_time + "', "
 				+ tpseg + ");";
 
 		return query;
 	}
 
 	public String make_polygon(String q) {
-
 		query = "box2d(ST_GeomFromText('LINESTRING(" + q + ")'))";
 
 		return query;
@@ -66,6 +65,13 @@ public class Make_Query {
 		query = "update " + table_name + " set " + traj_column_name + " = " + "append(" + traj_column_name
 				+ ", tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude() + "), "
 				+ "timestamp '" + tokenized.getDate_str() + "' ) ) where taxi_number = '" + tokenized.getOid() + "';";
+
+		return query;
+	}
+	
+	public String makeQuery_insertMpseqTrajData(String carNumber, int mpCount, String rect, String tpsegArr) {
+
+		query = "insert into mpseq_traj_data(carnumber, mpcount, rect, tpseg) values (" + carNumber + ", " + mpCount + ", " + rect + ", " + tpsegArr + ");";
 
 		return query;
 	}
