@@ -47,7 +47,7 @@ BEGIN
 			split_minX := minX+(x_unit*i)-x_unit;
 			split_minY := minY+(y_unit*j)-y_unit;
 			split_maxX := minX+(x_unit*i);
-			split_maxY := minY+(y_unit*j);	
+			split_maxY := minY+(y_unit*j);
 			
 			partition := ST_MakeBox2D(ST_Point(split_minX, split_minY), ST_Point(split_maxX, split_maxY));
 			

@@ -19,7 +19,7 @@ DECLARE
 	
 	total_box	box2d;
 BEGIN
-	total_box := box2d(geom);
+	total_box := geom;
 	
 	minX := st_xmin(total_box);
 	minY := st_ymin(total_box);

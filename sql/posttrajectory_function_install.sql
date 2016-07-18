@@ -612,7 +612,7 @@ $$
 	trajcetory와 tpoint를 받아서 입력해주는 함수
 */
 
-CREATE OR REPLACE FUNCTION append(trajectory, geometry, timestamp ) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION append(trajectory, geometry, timestamp) RETURNS trajectory AS
 $$
 DECLARE
 	inpuut_trajectory	alias for $1;
@@ -642,7 +642,7 @@ DECLARE
 	i		integer;
 	sql		text;
 BEGIN
-	execute 'select array_upper( $1, 1)'
+	execute 'select array_upper( $1, 1 )'
 	into array_size using array_tpoint;
 
 	i := 1;
@@ -660,7 +660,7 @@ LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
 
-CREATE OR REPLACE FUNCTION append(trajectory, tpoint ) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION append(trajectory, tpoint) RETURNS trajectory AS
 $BODY$
 DECLARE
 	f_trajectroy alias for $1;
@@ -687,9 +687,9 @@ BEGIN
 
 	traj_prefix := current_setting('traj.prefix');
 	traj_suffix := current_setting('traj.suffix');
-		
+	
 	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid || traj_suffix;
-		
+	
 	-- 현재 trajectory_segtable의 mpid값을 가져온다 
 	sql := 'select mpid from ' || quote_ident(f_trajectory_segtable_name) || 
 		' where mpid = ' || f_trajectroy.moid;
