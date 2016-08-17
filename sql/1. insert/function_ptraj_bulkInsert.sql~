@@ -1,5 +1,4 @@
-﻿/*
-*/
+﻿
 
 CREATE OR REPLACE FUNCTION read(file text, mpcnt integer)  
   RETURNS text AS $$
