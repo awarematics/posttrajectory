@@ -1,7 +1,7 @@
 ﻿
 
 
-CREATE OR REPLACE FUNCTION tpArr_to_geom(tpoint[]) RETURNS geometry AS
+CREATE OR REPLACE FUNCTION tpArr_to_3dgeom(tpoint[]) RETURNS geometry AS
 $$
 DECLARE
 	array_tpoint	alias for $1;
