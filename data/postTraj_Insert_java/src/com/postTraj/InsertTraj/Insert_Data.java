@@ -1,15 +1,22 @@
 package com.postTraj.InsertTraj;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 
 import com.postTraj.DBConnector.DBConnector;
 import com.postTraj.Query.Make_Query;
 import com.postTraj.Query.Tokenize_data;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Point;
 
 public class Insert_Data {
 	File[] file_name;
@@ -103,7 +110,7 @@ public class Insert_Data {
 	 * Insert Data of files
 	 * 
 	 */
-	public void data_insert(int cnt) {
+	public void data_insert(int cnt) throws SQLException {
 
 		long start = System.currentTimeMillis();
 
@@ -125,8 +132,6 @@ public class Insert_Data {
 				e.printStackTrace();
 			}
 
-			int print_cnt = 0;
-
 			segId = 0;
 
 			String data;
@@ -137,9 +142,15 @@ public class Insert_Data {
 
 				int tp_cnt = 0;
 
-				String ptArr = "", tpArr = "", start_pt = "";
+				String ptArr = "", tpArr = "", start_pt = "", segTableName = "";
 
 				Tokenize_data tokenized = new Tokenize_data();
+
+				rs = dbconn.queryExecute(query.find_segTableName("public", "trajectory_columns"));
+
+				while (rs.next()) {
+					segTableName = rs.getString(1);
+				}
 
 				while ((data = in.readLine()) != null) {
 
@@ -202,8 +213,6 @@ public class Insert_Data {
 
 						end_time = tokenized.getDate_str();
 
-						print_cnt++;
-						// System.out.println(print_cnt);
 					} else if (tp_cnt >= cnt) {
 
 						segId++;
@@ -214,8 +223,8 @@ public class Insert_Data {
 
 						ptArr += ", " + start_pt;
 
-						dbconn.queryUpdate(query.insert_traj(mpId, segId, next_segId, before_segId, tp_cnt,
-								query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
+						dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId,
+								tp_cnt, query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
 
 						tp_cnt = 1;
 
@@ -235,9 +244,6 @@ public class Insert_Data {
 							tpArr += ",";
 							ptArr += ",";
 						}
-						// System.out.println(print_cnt);
-						print_cnt++;
-
 					}
 				}
 
@@ -255,8 +261,8 @@ public class Insert_Data {
 
 						end_time = tokenized.getDate_str();
 
-						dbconn.queryUpdate(query.insert_traj(mpId, segId, next_segId, before_segId, tp_cnt,
-								query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
+						dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId,
+								tp_cnt, query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
 					}
 					// System.out.println(query.insert_traj(mpId, segId,
 					// next_segId,
@@ -278,11 +284,11 @@ public class Insert_Data {
 	 * Insert Data of a file
 	 * 
 	 */
-	public void data_insert(int cnt, String filePath) {
+	public void data_insert(int cnt, String filePath) throws SQLException {
 
 		int segId = 0, next_segId = 0, before_segId = 0, mpId = 0;
 
-		String start_time = "", end_time = "";
+		String start_time = "", end_time = "", before_pt = "", before_time = "", present_pt = "", present_time = "";
 
 		Make_Query query = new Make_Query();
 
@@ -293,21 +299,71 @@ public class Insert_Data {
 			e.printStackTrace();
 		}
 
-		int print_cnt = 0;
-
 		String data;
 
-		boolean isTaxiNum = false;
+		boolean isTaxiNum = false, insertOK = true;
+
+		File f = new File(filePath);
 
 		long start = System.currentTimeMillis();
+
+		double minx = 0.0;
+		double miny = 0.0;
+		double maxx = 0.0;
+		double maxy = 0.0;
+
+		Geometry[] geomArr;
+		Geometry geom, bounding_box = null;
+		GeometryFactory fac = new GeometryFactory();
+
+		Envelope env;
+
+		Coordinate c1;
+		Point p1;
+
+		int idx = 0;
+		int cnt_partition = 0;
+
+		boolean isNextSeg = false;
 
 		try {
 
 			int tp_cnt = 0;
 
-			String ptArr = "", tpArr = "", start_pt = "";
+			String tpArr = "", segTableName = "";
 
 			Tokenize_data tokenized = new Tokenize_data();
+
+			rs = dbconn.queryExecute(query.find_segTableName("public", "trajectory_columns"));
+
+			while (rs.next()) {
+				segTableName = rs.getString(1);
+			}
+
+			rs = dbconn.queryExecute(query.getCnt_partition("static_partition"));
+
+			while (rs.next()) {
+				cnt_partition = rs.getInt(1);
+			}
+
+			geomArr = new Geometry[cnt_partition];
+
+			rs = dbconn.queryExecute(query.getPartition_Info("static_partition"));
+
+			while (rs.next()) {
+				minx = Double.parseDouble(String.format("%.6f", rs.getDouble(1)));
+				miny = Double.parseDouble(String.format("%.6f", rs.getDouble(2)));
+				maxx = Double.parseDouble(String.format("%.6f", rs.getDouble(3)));
+				maxy = Double.parseDouble(String.format("%.6f", rs.getDouble(4)));
+
+				env = new Envelope(minx, maxx, miny, maxy);
+				geom = fac.toGeometry(env);
+				geomArr[idx] = geom;
+
+				idx++;
+			}
+
+			double beforeLati = 0.0, beforeLong = 0.0;
 
 			while ((data = in.readLine()) != null) {
 
@@ -344,91 +400,261 @@ public class Insert_Data {
 					}
 				}
 
-				if (tp_cnt < cnt) {
-					tp_cnt++;
+				tokenized.tokenize(data);
 
-					tokenized.tokenize(data);
+				if (Double.parseDouble(tokenized.getLatitude()) <= 1
+						|| Double.parseDouble(tokenized.getLongitude()) <= 1) {
+					insertOK = false;
+					continue;
+				}
 
-					if (tp_cnt == 1) {
-						start_pt = tokenized.getLatitude() + " " + tokenized.getLongitude();
+				// System.out.println(tokenized.getLatitude());
+				// System.out.println(tokenized.getLongitude());
+
+				c1 = new Coordinate(Double.parseDouble(tokenized.getLatitude()),
+						Double.parseDouble(tokenized.getLongitude()));
+
+				p1 = fac.createPoint(c1);
+
+				isNextSeg = false;
+
+				for (int i = 0; i < geomArr.length; i++) {
+					if (geomArr[i].covers(p1)) {
+
+						// System.out.println(i + " : " +
+						// geomArr[i].toString());
+						if (bounding_box == null) {
+							bounding_box = geomArr[i];
+							// System.out.println("null");
+						} else if (!bounding_box.equals(geomArr[i])) {
+							bounding_box = geomArr[i];
+
+							before_pt = present_pt;
+							before_time = present_time;
+
+							isNextSeg = true;
+							// System.out.println("Not null");
+						} else {
+							// System.out.println("etc");
+						}
+					}
+				}
+
+				if (!isNextSeg) {
+
+					if (tp_cnt < cnt - 1) {
+						// System.out.println("111");
+
+						tp_cnt++;
+
+						if (tp_cnt == 1) {
+							segId++;
+
+							next_segId = segId + 1;
+
+							before_segId = segId - 1;
+
+							start_time = tokenized.getDate_str();
+
+							tpArr = "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+									+ "), timestamp '" + tokenized.getDate_str() + "') )";
+
+							beforeLati = Double.parseDouble(tokenized.getLatitude());
+							beforeLong = Double.parseDouble(tokenized.getLongitude());
+						} else {
+
+							if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
+									|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
+								insertOK = false;
+								continue;
+							}
+
+							insertOK = true;
+
+							beforeLati = Double.parseDouble(tokenized.getLatitude());
+							beforeLong = Double.parseDouble(tokenized.getLongitude());
+
+							tpArr += ",";
+
+							tpArr += "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+									+ "), timestamp '" + tokenized.getDate_str() + "') )";
+						}
+
+						present_pt = tokenized.getLatitude() + ", " + tokenized.getLongitude();
+						present_time = tokenized.getDate_str();
+
+						end_time = tokenized.getDate_str();
+					} else if (tp_cnt >= cnt - 1) {
+						// System.out.println("222");
+
+						dbconn.queryUpdate(
+								query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
+										query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
+												bounding_box.getEnvelopeInternal().getMinY(),
+												bounding_box.getEnvelopeInternal().getMaxX(),
+												bounding_box.getEnvelopeInternal().getMaxY()),
+										start_time, end_time, query.make_tpseg(tpArr)));
+
+						// System.out.println(query.insert_traj(mpId, segId,
+						// next_segId, before_segId, tp_cnt,
+						// query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
+						// bounding_box.getEnvelopeInternal().getMinY(),
+						// bounding_box.getEnvelopeInternal().getMaxX(),
+						// bounding_box.getEnvelopeInternal().getMaxY()),
+						// start_time, end_time, query.make_tpseg(tpArr)));
+
+						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
+								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
+							insertOK = false;
+							continue;
+						}
+
+						insertOK = true;
+
+						beforeLati = Double.parseDouble(tokenized.getLatitude());
+						beforeLong = Double.parseDouble(tokenized.getLongitude());
+
+						tp_cnt = 1;
+
+						segId++;
+
+						next_segId = segId + 1;
+
+						before_segId = segId - 1;
 
 						start_time = tokenized.getDate_str();
+
+						present_pt = tokenized.getLatitude() + ", " + tokenized.getLongitude();
+						present_time = tokenized.getDate_str();
+
+						tpArr = "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+								+ "), timestamp '" + tokenized.getDate_str() + "') )";
 					}
-
-					tpArr += "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
-							+ "), timestamp '" + tokenized.getDate_str() + "') )";
-
-					ptArr += tokenized.getLatitude() + " " + tokenized.getLongitude();
-
+				} else {
 					if (tp_cnt < cnt) {
+						// System.out.println("333");
+
+						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
+								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
+							insertOK = false;
+							continue;
+						}
+
+						insertOK = true;
+
+						beforeLati = Double.parseDouble(tokenized.getLatitude());
+						beforeLong = Double.parseDouble(tokenized.getLongitude());
+
+						tp_cnt++;
 
 						tpArr += ",";
 
-						ptArr += ",";
+						tpArr += "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+								+ "), timestamp '" + tokenized.getDate_str() + "') )";
+
+						end_time = tokenized.getDate_str();
+
+						dbconn.queryUpdate(
+								query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
+										query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
+												bounding_box.getEnvelopeInternal().getMinY(),
+												bounding_box.getEnvelopeInternal().getMaxX(),
+												bounding_box.getEnvelopeInternal().getMaxY()),
+										start_time, end_time, query.make_tpseg(tpArr)));
+
+						// System.out.println(query.insert_traj(mpId, segId,
+						// next_segId, before_segId, tp_cnt,
+						// query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
+						// bounding_box.getEnvelopeInternal().getMinY(),
+						// bounding_box.getEnvelopeInternal().getMaxX(),
+						// bounding_box.getEnvelopeInternal().getMaxY()),
+						// start_time, end_time, query.make_tpseg(tpArr)));
+
+						tp_cnt = 2;
+
+						segId++;
+
+						next_segId = segId + 1;
+
+						before_segId = segId - 1;
+
+						start_time = before_time;
+
+						end_time = tokenized.getDate_str();
+
+						tpArr = "( tpoint(st_point(" + before_pt + "), timestamp '" + before_time
+								+ "') ), ( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+								+ "), timestamp '" + tokenized.getDate_str() + "') )";
+					} else {
+						// System.out.println("444");
+
+						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
+								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
+							insertOK = false;
+							continue;
+						}
+
+						insertOK = true;
+
+						beforeLati = Double.parseDouble(tokenized.getLatitude());
+						beforeLong = Double.parseDouble(tokenized.getLongitude());
+
+						tp_cnt = 1;
+
+						segId++;
+
+						next_segId = segId + 1;
+
+						before_segId = segId - 1;
+
+						start_time = tokenized.getDate_str();
+
+						present_pt = tokenized.getLatitude() + ", " + tokenized.getLongitude();
+
+						tpArr = "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+								+ "), timestamp '" + tokenized.getDate_str() + "') )";
 					}
-
-					end_time = tokenized.getDate_str();
-
-					print_cnt++;
-					System.out.println(print_cnt);
-				} else if (tp_cnt >= cnt) {
-
-					segId++;
-
-					next_segId = segId + 1;
-
-					before_segId = segId - 1;
-
-					ptArr += ", " + start_pt;
-
-					dbconn.queryUpdate(query.insert_traj(mpId, segId, next_segId, before_segId, tp_cnt,
-							query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
-
-					tp_cnt = 1;
-
-					tokenized.tokenize(data);
-
-					start_pt = tokenized.getLatitude() + " " + tokenized.getLongitude();
-
-					start_time = tokenized.getDate_str();
-
-					tpArr = "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
-							+ "), timestamp '" + tokenized.getDate_str() + "') )";
-
-					ptArr = tokenized.getLatitude() + " " + tokenized.getLongitude();
-
-					if (tp_cnt < cnt) {
-
-						tpArr += ",";
-						ptArr += ",";
-					}
-
-					System.out.println(print_cnt);
-					print_cnt++;
-
 				}
 			}
 
+			insertOK = true;
+
+			if (f.length() == 0 || Double.parseDouble(tokenized.getLatitude()) <= 1
+					|| Double.parseDouble(tokenized.getLongitude()) <= 1) {
+				insertOK = false;
+			}
+
 			if (tp_cnt < cnt) {
-				segId++;
-
-				next_segId = segId + 1;
-
-				before_segId = segId - 1;
-
-				ptArr += start_pt;
-
-				tpArr = tpArr.substring(0, tpArr.lastIndexOf(','));
-
 				end_time = tokenized.getDate_str();
 
-				dbconn.queryUpdate(query.insert_traj(mpId, segId, next_segId, before_segId, tp_cnt,
-						query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
+				if (insertOK) {
+					dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
+							query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
+									bounding_box.getEnvelopeInternal().getMinY(),
+									bounding_box.getEnvelopeInternal().getMaxX(),
+									bounding_box.getEnvelopeInternal().getMaxY()),
+							start_time, end_time, query.make_tpseg(tpArr)));
+				}
 
+				// System.out.println(query.insert_traj(mpId, segId, next_segId,
+				// before_segId, tp_cnt, query.make_box2d(
+				// bounding_box.getEnvelopeInternal().getMinX(),
+				// bounding_box.getEnvelopeInternal().getMinY(),
+				// bounding_box.getEnvelopeInternal().getMaxX(),
+				// bounding_box.getEnvelopeInternal().getMaxY()),
+				// start_time, end_time, query.make_tpseg(tpArr)));
 			}
-			System.out.println(query.insert_traj(mpId, segId, next_segId, before_segId, tp_cnt,
-					query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
-		} catch (IOException e) {
+
+			// System.out.println(tmp_idx1);
+			// System.out.println(tmp_idx2);
+			//
+			// System.out.println(query.insert_traj(mpId, segId, next_segId,
+			// before_segId, tp_cnt,
+			// query.make_polygon(ptArr), start_time, end_time,
+			// query.make_tpseg(tpArr)));
+		} catch (
+
+		IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -436,34 +662,33 @@ public class Insert_Data {
 
 		System.out.println("Total Time : " + (end - start) / 1000.0);
 	}
-	
+
 	/*
 	 * exist table
 	 * 
 	 */
 	public boolean exist_table(String schemeName, String tbName) {
-		
+
 		Make_Query query = new Make_Query();
-		
+
 		boolean bool = true;
-		
-		try {							
+
+		try {
 			rs = dbconn.queryExecute(query.is_table(schemeName, tbName));
-			
+
 			while (rs.next()) {
 				if (rs.getInt(1) == 0) {
 					dbconn.queryUpdate(query.create_trajDataTable(tbName));
-					
+
 					bool = true;
 				}
 			}
 		} catch (Exception e) {
 			bool = false;
-		}	
-		
+		}
+
 		return bool;
 	}
-	
 
 	/*
 	 * insert_mqseqTrajData of a file
@@ -479,12 +704,16 @@ public class Insert_Data {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		int print_cnt = 0;
 
 		String data;
 
-		boolean isTaxiNum = false;
+		boolean isTaxiNum = false, insertOK = true;
+
+		File f = new File(filePath);
+
+		if (f.length() == 0) {
+			insertOK = false;
+		}
 
 		try {
 			int tp_cnt = 0;
@@ -530,6 +759,7 @@ public class Insert_Data {
 
 				if (Double.parseDouble(tokenized.getLatitude()) <= 1
 						|| Double.parseDouble(tokenized.getLongitude()) <= 1) {
+					insertOK = false;
 					continue;
 				}
 
@@ -538,9 +768,12 @@ public class Insert_Data {
 					if (tp_cnt > 1) {
 						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
 								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
+							insertOK = false;
 							continue;
 						}
 					}
+
+					insertOK = true;
 
 					if (!isStart) {
 						tpArr += ",";
@@ -558,26 +791,27 @@ public class Insert_Data {
 					beforeLati = Double.parseDouble(tokenized.getLatitude());
 					beforeLong = Double.parseDouble(tokenized.getLongitude());
 
-					// print_cnt++;
-					// System.out.println(print_cnt);
-
 				} else if (tp_cnt == cnt) {
 
 					// System.out.println(ptArr.split(",").length);
 					startPt = ptArr.split(",")[0];
 
 					ptArr += "," + startPt;
-					
-//					System.out.println(query.makeQuery_insertMpseqTrajData(tokenized.getOid(), tp_cnt,
-//							query.make_polygon(ptArr), query.make_tpseg(tpArr)));
-					
+
+					// System.out.println(query.makeQuery_insertMpseqTrajData(tokenized.getOid(),
+					// tp_cnt,
+					// query.make_polygon(ptArr), query.make_tpseg(tpArr)));
+
 					dbconn.queryUpdate(query.makeQuery_insertMpseqTrajData(tokenized.getOid(), tp_cnt,
 							query.make_polygon(ptArr), query.make_tpseg(tpArr)));
 
 					if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
 							|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
+						insertOK = false;
 						continue;
 					}
+
+					insertOK = true;
 
 					beforeLati = Double.parseDouble(tokenized.getLatitude());
 					beforeLong = Double.parseDouble(tokenized.getLongitude());
@@ -590,21 +824,18 @@ public class Insert_Data {
 				}
 			}
 
-			// System.out.println(ptArr.split(",").length);
-
 			startPt = ptArr.split(",")[0];
 
 			ptArr += "," + startPt;
 
-//			System.out.println(query.makeQuery_insertMpseqTrajData(tokenized.getOid(), tp_cnt,
-//					query.make_polygon(ptArr), query.make_tpseg(tpArr)));
-			
-			dbconn.queryUpdate(query.makeQuery_insertMpseqTrajData(tokenized.getOid(), tp_cnt,
-					query.make_polygon(ptArr), query.make_tpseg(tpArr)));
+			if (insertOK) {
+				dbconn.queryUpdate(query.makeQuery_insertMpseqTrajData(tokenized.getOid(), tp_cnt,
+						query.make_polygon(ptArr), query.make_tpseg(tpArr)));
+			}
 
-			// System.out
-			// .println(query.makeQuery_insertMpseqTrajData(tokenized.getOid(),
-			// tp_cnt, query.make_tpseg(tpArr)));
+			// System.out.println(query.makeQuery_insertMpseqTrajData(tokenized.getOid(),
+			// tp_cnt,
+			// query.make_polygon(ptArr), query.make_tpseg(tpArr)));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -682,7 +913,7 @@ public class Insert_Data {
 	// // return result;
 	// }
 
-	public void insert_files(int cnt, String path) {
+	public void insert_files(int cnt, String path, String type) throws SQLException {
 
 		File f = new File(path);
 
@@ -749,11 +980,20 @@ public class Insert_Data {
 			}
 		}
 
-		for (int i = 0; i < result.length; i++) {
-			insert_mpseqTrajData(cnt, result[i].toString());
-			// System.out.println(i + " : " + result[i]);
+		if (type.equals("segmentTb")) {
+			for (int i = 0; i < result.length; i++) {
+				System.out.println((i + 1) + "/" + total + " : " + result[i].toString());
+				data_insert(cnt, result[i].toString());
+			}
 		}
-	
+
+		if (type.equals("subTb")) {
+			for (int i = 0; i < result.length; i++) {
+				System.out.println((i + 1) + "/" + total + " : " + result[i].toString());
+				insert_mpseqTrajData(cnt, result[i].toString());
+			}
+		}
+
 		// return result;
 	}
 

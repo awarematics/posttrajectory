@@ -7,7 +7,6 @@
 */
 
 
-
 CREATE OR REPLACE FUNCTION ptraj_insertTraj() RETURNS void AS
 $BODY$
 DECLARE

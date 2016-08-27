@@ -16,7 +16,7 @@ public class DBConnector {
 	boolean success;
 
 	public boolean dbconnector() {
-		url = "jdbc:postgresql://202.31.147.190/postgres";
+		url = "jdbc:postgresql://localhost/postgres";
 		username = "postgres";
 		password = "1";
 		success = false;

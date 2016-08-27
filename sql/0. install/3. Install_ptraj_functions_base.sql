@@ -683,9 +683,9 @@ BEGIN
 		IF(mp_seq.mpcount < tp_seg_size) THEN
 			
 			EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
-				' SET mpcount = mpcount+1, rect = st_combine_bbox(rect::box2d, $1), end_time = $2, tpseg = array_append(tpseg, $3) 
-				WHERE mpid = $4 AND segid = $5 '
-			USING tp.pnt, tp.ts, tp, mpid, segid;
+				' SET mpcount = mpcount+1, end_time = $1, tpseg = array_append(tpseg, $2) 
+				WHERE mpid = $3 AND segid = $4 '
+			USING tp.ts, tp, mpid, segid;
 
 			-- 현재 append 하려는 레코드의 partition_id 가 같은지를 검사하기 위한 count(*) 검색
 			EXECUTE 'SELECT COUNT(*) FROM ' || quote_ident(f_trajectory_segtable_name) || ' WHERE mpid = $1 AND segid = $2 AND ST_EQUALS(rect, $3)'
@@ -696,7 +696,7 @@ BEGIN
 				new_segid := segid + 1;
 
 				EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) || '(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-					VALUES($1, ' || new_segid || ', $2, 2, $3, TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
+					VALUES($1, ' || new_segid || ', $2, 2, $3, TIMESTAMP ' || quote_literal(mp_seq.tpseg[mp_seq.mpcount].ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
 					', ARRAY[($4), ($5, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
 				USING mpid, segid, box_part, mp_seq.tpseg[mp_seq.mpcount], tp.pnt;
 				
@@ -720,12 +720,12 @@ BEGIN
 			IF(cnt < 1) THEN
 				
 				EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) || '(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-					VALUES($1, ' || new_segid || ', $2, 2, $3, TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
+					VALUES($1, ' || new_segid || ', $2, 2, $3, TIMESTAMP ' || quote_literal(mp_seq.tpseg[mp_seq.mpcount].ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
 					', ARRAY[($4), ($5, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
 				USING mpid, segid, box_part, mp_seq.tpseg[mp_seq.mpcount], tp.pnt;
 			ELSE
 				EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) ||'(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-					VALUES($1,  ' || new_segid+1 || ', $2, 1, $3, TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
+					VALUES($1, ' || new_segid || ', $2, 1, $3, TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
 					' , ARRAY[($4, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
 				USING mpid, segid, box_part, tp.pnt;
 			END IF;

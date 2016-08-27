@@ -1,7 +1,11 @@
-/*
-  ptraj_insertStaticPartitionInfo
+﻿
 
+/*
+*
+* select ptraj_insertStaticPartitionInfo(10, 10);
+*
 */
+
 
 CREATE OR REPLACE FUNCTION ptraj_insertStaticPartitionInfo(INTEGER, INTEGER) RETURNS BOOLEAN AS
 $$
@@ -45,7 +49,7 @@ BEGIN
 
 	sql := 'SELECT box2d(rect) FROM mpseq_traj_data ORDER BY id';
 	FOR tmp_box IN EXECUTE sql LOOP
-	
+		-- raise notice '%', tmp_box;
 		IF (ST_XMin(tmp_box) <= minX OR minX = 0.0) THEN
 			minX := ST_XMin(tmp_box);
 		END IF;
