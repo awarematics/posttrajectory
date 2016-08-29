@@ -274,8 +274,8 @@ BEGIN
 			before_segid	integer,
 			mpcount		integer,
 			rect		box2d,
-			start_time	timestamp with time zone,
-			end_time	timestamp with time zone,
+			start_time	timestamp without time zone,
+			end_time	timestamp without time zone,
 			tpseg		tpoint[]
 		)';
 
@@ -455,8 +455,8 @@ BEGIN
 			before_segid	integer,
 			mpcount		integer,
 			rect		box2d,
-			start_time	timestamp with time zone,
-			end_time	timestamp with time zone,
+			start_time	timestamp without time zone,
+			end_time	timestamp without time zone,
 			tpseg		tpoint[]
 		)';
 

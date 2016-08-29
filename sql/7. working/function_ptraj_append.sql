@@ -63,7 +63,7 @@ DECLARE
 	
 	f_trajectory_segtable_name	char(200);
 	table_oid			char(100);
-	mpid				integer;
+	mpid				integer;d
 	segid				integer;
 	mp_count			integer;
 	mp_seq				record;

@@ -20,7 +20,7 @@ BEGIN
 	sql := 'SELECT f_trajectory_segtable_name FROM trajectory_columns;';
 	EXECUTE sql INTO f_trajectory_segtable_name;
 
-	sql := 'SELECT COUNT(*) FROM static_partition';
+	sql := 'SELECT COUNT(*) FROM static_partition_conf';
 	EXECUTE sql INTO cnt_partition;
 
 	FOR i IN 1..cnt_partition LOOP
