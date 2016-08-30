@@ -25,7 +25,7 @@ BEGIN
 
 	FOR i IN 1..cnt_partition LOOP
 		sql := 'CREATE INDEX gist_SETIOR_idx' || i || ' ON ' || f_trajectory_segtable_name;
-		sql := sql || ' USING gist(geometry(rect)) WHERE cellid(rect) = ' || i;
+		sql := sql || ' USING gist(ST_MakeLine(ST_MakePoint(toDouble(start_time), 0.0), ST_MakePoint(toDouble(end_time), 0.0))) WHERE cellid(rect) = ' || i;
 		RAISE notice '%', sql;
 		EXECUTE sql;
 	END LOOP;

@@ -27,6 +27,14 @@ public class Make_Query {
 
 		return query;
 	}
+	
+	public String find_moid(String data, String table_name) {
+		tokenized.tokenize(data);
+		
+		query = "select (traj).moid from " + table_name + " where taxi_number = '" + tokenized.getOid() + "'";
+
+		return query;
+	}
 
 	public String insert_Taxi(String data, String table_name, int idx) {
 		tokenized.tokenize(data);

@@ -116,11 +116,11 @@ public class Insert_Data {
 
 		int segId = 0, next_segId = 0, before_segId = 0, mpId = 0;
 
-		String start_time = "", end_time = "";
+		String start_time = "", end_time = "", tbName = "";
 
 		Make_Query query = new Make_Query();
 
-		String filePath = "/root/DataSet/";
+		String filePath = "/root/00010/";
 		file_name = get_fileArr(filePath);
 
 		for (int t = 0; t < file_name.length; t++) {
@@ -137,6 +137,8 @@ public class Insert_Data {
 			String data;
 
 			boolean isTaxiNum = false;
+
+			tbName = "taxi";
 
 			try {
 
@@ -158,22 +160,22 @@ public class Insert_Data {
 						isTaxiNum = true;
 
 						try {
-							rs = dbconn.queryExecute(query.find_TaxiNum(data, "taxi"));
+							rs = dbconn.queryExecute(query.find_TaxiNum(data, tbName));
 
 							while (rs.next()) {
 
 								if (rs.getInt(1) == 0) {
-									rs1 = dbconn.queryExecute(query.find_MaxId("taxi_id", "taxi"));
+									rs1 = dbconn.queryExecute(query.find_MaxId("taxi_id", tbName));
 
 									while (rs1.next()) {
 										int taxiId = rs1.getInt(1) + 1;
 										// System.out.println("Insert record in
 										// taxi table");
 
-										dbconn.queryUpdate(query.insert_Taxi(data, "taxi", taxiId));
+										dbconn.queryUpdate(query.insert_Taxi(data, tbName, taxiId));
 									}
 
-									rs1 = dbconn.queryExecute(query.get_seqNum("taxi"));
+									rs1 = dbconn.queryExecute(query.get_seqNum(tbName));
 
 									while (rs1.next()) {
 
@@ -284,7 +286,227 @@ public class Insert_Data {
 	 * Insert Data of a file
 	 * 
 	 */
-	public void data_insert(int cnt, String filePath) throws SQLException {
+	public void insert_dataBasedCount(int cnt, String filePath) throws SQLException {
+
+		int segId = 0, next_segId = 0, before_segId = 0, mpId = 0;
+
+		String start_time = "", end_time = "";
+
+		Make_Query query = new Make_Query();
+
+		try {
+			in = new BufferedReader(new FileReader(filePath));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		String data;
+
+		boolean isTaxiNum = false, insertOK = true;
+
+		File f = new File(filePath);
+
+		if (f.length() == 0) {
+			insertOK = false;
+		}
+
+		long start = System.currentTimeMillis();
+
+		try {
+
+			int tp_cnt = 0;
+
+			String ptArr = "", tpArr = "", startPt = "", segTableName = "", tbName = "";
+
+			tbName = "taxi";
+
+			Tokenize_data tokenized = new Tokenize_data();
+
+			boolean isStart = true;
+
+			double beforeLati = 0.0, beforeLong = 0.0;
+
+			rs = dbconn.queryExecute(query.find_segTableName("public", "trajectory_columns"));
+
+			while (rs.next()) {
+				segTableName = rs.getString(1);
+			}
+
+			while ((data = in.readLine()) != null) {
+
+				if (!isTaxiNum) {
+					isTaxiNum = true;
+
+					try {
+						rs = dbconn.queryExecute(query.find_TaxiNum(data, tbName));
+
+						while (rs.next()) {
+
+							if (rs.getInt(1) == 0) {
+								rs1 = dbconn.queryExecute(query.find_MaxId("taxi_id", tbName));
+
+								while (rs1.next()) {
+									int taxiId = rs1.getInt(1) + 1;
+									System.out.println("Insert record in taxi table");
+
+									dbconn.queryUpdate(query.insert_Taxi(data, tbName, taxiId));
+								}
+
+								rs1 = dbconn.queryExecute(query.get_seqNum(tbName));
+
+								while (rs1.next()) {
+
+									mpId = rs1.getInt(1);
+								}
+							} else {
+								rs1 = dbconn.queryExecute(query.find_moid(data, tbName));
+
+								while (rs1.next()) {
+									mpId = rs1.getInt(1);
+								}
+							}
+						}
+					} catch (Exception e) {
+						System.out.println("Exception");
+					}
+				}
+
+				tokenized.tokenize(data);
+
+				if (Double.parseDouble(tokenized.getLatitude()) <= 1
+						|| Double.parseDouble(tokenized.getLongitude()) <= 1) {
+					insertOK = false;
+					continue;
+				}
+
+				if (tp_cnt < cnt) {
+
+					tp_cnt++;
+
+					if (tp_cnt == 1) {
+						segId++;
+
+						next_segId = segId + 1;
+
+						before_segId = segId - 1;
+
+						start_time = tokenized.getDate_str();
+
+						tpArr = "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+								+ "), timestamp '" + tokenized.getDate_str() + "') )";
+						ptArr = tokenized.getLatitude() + " " + tokenized.getLongitude();
+					} else if (tp_cnt > 1) {
+
+						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 10
+								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 10) {
+							insertOK = false;
+							continue;
+						}
+
+						insertOK = true;
+
+						tpArr += ",";
+						ptArr += ",";
+
+						tpArr += "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+								+ "), timestamp '" + tokenized.getDate_str() + "') )";
+						ptArr += tokenized.getLatitude() + " " + tokenized.getLongitude();
+
+					}
+					end_time = tokenized.getDate_str();
+
+					beforeLati = Double.parseDouble(tokenized.getLatitude());
+					beforeLong = Double.parseDouble(tokenized.getLongitude());
+				} else if (tp_cnt == cnt) {
+					startPt = ptArr.split(",")[0];
+
+					ptArr += ", " + startPt;
+
+					dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
+							query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
+					// System.out.println(query.insert_traj(segTableName, mpId,
+					// segId, next_segId, before_segId, tp_cnt,
+					// query.make_polygon(ptArr), start_time, end_time,
+					// query.make_tpseg(tpArr)));
+
+					if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 10
+							|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 10) {
+						insertOK = false;
+						continue;
+					}
+
+					beforeLati = Double.parseDouble(tokenized.getLatitude());
+					beforeLong = Double.parseDouble(tokenized.getLongitude());
+
+					tp_cnt = 1;
+
+					segId++;
+
+					next_segId = segId + 1;
+
+					before_segId = segId - 1;
+
+					start_time = tokenized.getDate_str();
+
+					tpArr = "( tpoint(st_point(" + tokenized.getLatitude() + ", " + tokenized.getLongitude()
+							+ "), timestamp '" + tokenized.getDate_str() + "') )";
+
+					ptArr = tokenized.getLatitude() + " " + tokenized.getLongitude();
+				}
+			}
+
+			if (insertOK) {
+				end_time = tokenized.getDate_str();
+
+				startPt = ptArr.split(",")[0];
+
+				ptArr += "," + startPt;
+
+				dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
+						query.make_polygon(ptArr), start_time, end_time, query.make_tpseg(tpArr)));
+				// System.out.println(query.insert_traj(segTableName, mpId,
+				// segId, next_segId, before_segId, tp_cnt,
+				// query.make_polygon(ptArr), start_time, end_time,
+				// query.make_tpseg(tpArr)));
+			}
+
+			/*
+			 * if (insertOK) { if (tp_cnt < cnt) { segId++;
+			 * 
+			 * next_segId = segId + 1;
+			 * 
+			 * before_segId = segId - 1;
+			 * 
+			 * ptArr += start_pt;
+			 * 
+			 * tpArr = tpArr.substring(0, tpArr.lastIndexOf(','));
+			 * 
+			 * end_time = tokenized.getDate_str();
+			 * 
+			 * dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId,
+			 * next_segId, before_segId, tp_cnt, query.make_polygon(ptArr),
+			 * start_time, end_time, query.make_tpseg(tpArr)));
+			 * 
+			 * } // System.out.println(query.insert_traj(segTableName, mpId, //
+			 * segId, next_segId, before_segId, tp_cnt, //
+			 * query.make_polygon(ptArr), start_time, end_time, //
+			 * query.make_tpseg(tpArr))); }
+			 */
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		long end = System.currentTimeMillis();
+
+		System.out.println("Total Time : " + (end - start) / 1000.0);
+	}
+
+	/*
+	 * Insert Data of a file
+	 * 
+	 */
+	public void insert_dataBasedSETI(int cnt, String filePath) throws SQLException {
 
 		int segId = 0, next_segId = 0, before_segId = 0, mpId = 0;
 
@@ -463,16 +685,21 @@ public class Insert_Data {
 							beforeLong = Double.parseDouble(tokenized.getLongitude());
 						} else {
 
-							if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
-									|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
-								insertOK = false;
-								continue;
-							}
-
-							insertOK = true;
-
-							beforeLati = Double.parseDouble(tokenized.getLatitude());
-							beforeLong = Double.parseDouble(tokenized.getLongitude());
+							// if (Math.abs(beforeLati -
+							// Double.parseDouble(tokenized.getLatitude())) > 1
+							// || Math.abs(beforeLong -
+							// Double.parseDouble(tokenized.getLongitude())) >
+							// 1) {
+							// insertOK = false;
+							// continue;
+							// }
+							//
+							// insertOK = true;
+							//
+							// beforeLati =
+							// Double.parseDouble(tokenized.getLatitude());
+							// beforeLong =
+							// Double.parseDouble(tokenized.getLongitude());
 
 							tpArr += ",";
 
@@ -495,7 +722,8 @@ public class Insert_Data {
 												bounding_box.getEnvelopeInternal().getMaxY()),
 										start_time, end_time, query.make_tpseg(tpArr)));
 
-						// System.out.println(query.insert_traj(mpId, segId,
+						// System.out
+						// .println(query.insert_traj(segTableName, mpId, segId,
 						// next_segId, before_segId, tp_cnt,
 						// query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
 						// bounding_box.getEnvelopeInternal().getMinY(),
@@ -503,16 +731,20 @@ public class Insert_Data {
 						// bounding_box.getEnvelopeInternal().getMaxY()),
 						// start_time, end_time, query.make_tpseg(tpArr)));
 
-						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
-								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
-							insertOK = false;
-							continue;
-						}
-
-						insertOK = true;
-
-						beforeLati = Double.parseDouble(tokenized.getLatitude());
-						beforeLong = Double.parseDouble(tokenized.getLongitude());
+						// if (Math.abs(beforeLati -
+						// Double.parseDouble(tokenized.getLatitude())) > 1
+						// || Math.abs(beforeLong -
+						// Double.parseDouble(tokenized.getLongitude())) > 1) {
+						// insertOK = false;
+						// continue;
+						// }
+						//
+						// insertOK = true;
+						//
+						// beforeLati =
+						// Double.parseDouble(tokenized.getLatitude());
+						// beforeLong =
+						// Double.parseDouble(tokenized.getLongitude());
 
 						tp_cnt = 1;
 
@@ -534,16 +766,20 @@ public class Insert_Data {
 					if (tp_cnt < cnt) {
 						// System.out.println("333");
 
-						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
-								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
-							insertOK = false;
-							continue;
-						}
-
-						insertOK = true;
-
-						beforeLati = Double.parseDouble(tokenized.getLatitude());
-						beforeLong = Double.parseDouble(tokenized.getLongitude());
+						// if (Math.abs(beforeLati -
+						// Double.parseDouble(tokenized.getLatitude())) > 1
+						// || Math.abs(beforeLong -
+						// Double.parseDouble(tokenized.getLongitude())) > 1) {
+						// insertOK = false;
+						// continue;
+						// }
+						//
+						// insertOK = true;
+						//
+						// beforeLati =
+						// Double.parseDouble(tokenized.getLatitude());
+						// beforeLong =
+						// Double.parseDouble(tokenized.getLongitude());
 
 						tp_cnt++;
 
@@ -562,7 +798,8 @@ public class Insert_Data {
 												bounding_box.getEnvelopeInternal().getMaxY()),
 										start_time, end_time, query.make_tpseg(tpArr)));
 
-						// System.out.println(query.insert_traj(mpId, segId,
+						// System.out
+						// .println(query.insert_traj(segTableName, mpId, segId,
 						// next_segId, before_segId, tp_cnt,
 						// query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
 						// bounding_box.getEnvelopeInternal().getMinY(),
@@ -588,16 +825,20 @@ public class Insert_Data {
 					} else {
 						// System.out.println("444");
 
-						if (Math.abs(beforeLati - Double.parseDouble(tokenized.getLatitude())) > 1
-								|| Math.abs(beforeLong - Double.parseDouble(tokenized.getLongitude())) > 1) {
-							insertOK = false;
-							continue;
-						}
-
-						insertOK = true;
-
-						beforeLati = Double.parseDouble(tokenized.getLatitude());
-						beforeLong = Double.parseDouble(tokenized.getLongitude());
+						// if (Math.abs(beforeLati -
+						// Double.parseDouble(tokenized.getLatitude())) > 1
+						// || Math.abs(beforeLong -
+						// Double.parseDouble(tokenized.getLongitude())) > 1) {
+						// insertOK = false;
+						// continue;
+						// }
+						//
+						// insertOK = true;
+						//
+						// beforeLati =
+						// Double.parseDouble(tokenized.getLatitude());
+						// beforeLong =
+						// Double.parseDouble(tokenized.getLongitude());
 
 						tp_cnt = 1;
 
@@ -617,28 +858,29 @@ public class Insert_Data {
 				}
 			}
 
-			insertOK = true;
-
-			if (f.length() == 0 || Double.parseDouble(tokenized.getLatitude()) <= 1
-					|| Double.parseDouble(tokenized.getLongitude()) <= 1) {
-				insertOK = false;
-			}
-
+			/*
+			 * insertOK = true;
+			 * 
+			 * if (f.length() == 0 ||
+			 * Double.parseDouble(tokenized.getLatitude()) <= 1 ||
+			 * Double.parseDouble(tokenized.getLongitude()) <= 1) { insertOK =
+			 * false; }
+			 */
 			if (tp_cnt < cnt) {
 				end_time = tokenized.getDate_str();
 
-				if (insertOK) {
-					dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
-							query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
-									bounding_box.getEnvelopeInternal().getMinY(),
-									bounding_box.getEnvelopeInternal().getMaxX(),
-									bounding_box.getEnvelopeInternal().getMaxY()),
-							start_time, end_time, query.make_tpseg(tpArr)));
-				}
+				// if (insertOK) {
+				dbconn.queryUpdate(query.insert_traj(segTableName, mpId, segId, next_segId, before_segId, tp_cnt,
+						query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
+								bounding_box.getEnvelopeInternal().getMinY(),
+								bounding_box.getEnvelopeInternal().getMaxX(),
+								bounding_box.getEnvelopeInternal().getMaxY()),
+						start_time, end_time, query.make_tpseg(tpArr)));
+				// }
 
-				// System.out.println(query.insert_traj(mpId, segId, next_segId,
-				// before_segId, tp_cnt, query.make_box2d(
-				// bounding_box.getEnvelopeInternal().getMinX(),
+				// System.out.println(query.insert_traj(segTableName, mpId,
+				// segId, next_segId, before_segId, tp_cnt,
+				// query.make_box2d(bounding_box.getEnvelopeInternal().getMinX(),
 				// bounding_box.getEnvelopeInternal().getMinY(),
 				// bounding_box.getEnvelopeInternal().getMaxX(),
 				// bounding_box.getEnvelopeInternal().getMaxY()),
@@ -980,10 +1222,17 @@ public class Insert_Data {
 			}
 		}
 
-		if (type.equals("segmentTb")) {
+		if (type.equals("segTb_SETI")) {
 			for (int i = 0; i < result.length; i++) {
 				System.out.println((i + 1) + "/" + total + " : " + result[i].toString());
-				data_insert(cnt, result[i].toString());
+				insert_dataBasedSETI(cnt, result[i].toString());
+			}
+		}
+
+		if (type.equals("segTb_count")) {
+			for (int i = 0; i < result.length; i++) {
+				System.out.println((i + 1) + "/" + total + " : " + result[i].toString());
+				insert_dataBasedCount(cnt, result[i].toString());
 			}
 		}
 

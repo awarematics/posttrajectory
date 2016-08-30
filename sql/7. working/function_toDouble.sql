@@ -15,4 +15,4 @@ BEGIN
 	RETURN ts_to_double;
 END
 $$
-  LANGUAGE plpgsql VOLATILE;
+  LANGUAGE plpgsql IMMUTABLE;
