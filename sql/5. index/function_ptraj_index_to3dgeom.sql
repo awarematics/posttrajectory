@@ -1,56 +1,46 @@
-﻿﻿-- Function: public.ptraj_index_to3dgeom(geometry, timestamp without time zone, timestamp without time zone)
+﻿﻿-- Function: public.ptraj_index_to3dgeom(box2d, timestamp without time zone, timestamp without time zone)
 
--- DROP FUNCTION public.ptraj_index_to3dgeom(geometry, timestamp without time zone, timestamp without time zone);
+-- DROP FUNCTION public.ptraj_index_to3dgeom(box2d, timestamp without time zone, timestamp without time zone);
 
 CREATE OR REPLACE FUNCTION public.ptraj_index_to3dgeom(
-    geometry,
+    box2d,
     timestamp without time zone,
     timestamp without time zone)
   RETURNS geometry AS
-$BODY$
+$$
 DECLARE
-	input_geom			ALIAS FOR $1;
+	input_box			ALIAS FOR $1;
 	start_time			ALIAS FOR $2;
 	end_time			ALIAS FOR $3;
 
-	i				integer;
-	sql				varchar;
-	txt				varchar;
-	data				RECORD;
-	tmp_box3d			geometry;
-	
+	xmin				float;
+	ymin				float;
+	zmin				float;
+	xmax				float;
+	ymax				float;
+	zmax				float;
+
 	output_geom			geometry;
 BEGIN
-	sql := 'SELECT ST_X((ST_DumpPoints($1)).geom) AS X, ST_Y((ST_DumpPoints($1)).geom) AS Y';
+	xmin := ST_XMin(input_box);
+	ymin := ST_YMin(input_box);
+	zmin := toDouble(start_time);
+	xmax := ST_XMax(input_box);
+	ymax := ST_YMax(input_box);
+	zmax := toDouble(end_time);
 
-	txt := 'LINESTRING(';
-	i := 1;
-	
-	FOR data IN EXECUTE sql USING input_geom LOOP
-		if (i > 1) then
-		txt := txt || ',';
-		end if;
-		
-		txt := txt || data.x || ' ' || data.y || ' ' || toDouble(end_time);
-		i := i + 1;
-	END LOOP;
-
-	txt := txt || ')';
-	
-	-- raise notice '%', txt;
-
-	output_geom := ST_Polygon(ST_GeomFromText(txt), 4326);
+	output_geom := ST_MakeLine(ST_MakePoint(xmin, ymin, zmin), ST_MakePoint(xmax, ymax, zmax));
 	
 	RETURN output_geom;
 END
-$BODY$
+$$
   LANGUAGE plpgsql IMMUTABLE
   COST 100;
-ALTER FUNCTION public.ptraj_index_to3dgeom(geometry, timestamp without time zone, timestamp without time zone)
+ALTER FUNCTION public.ptraj_index_to3dgeom(box2d, timestamp without time zone, timestamp without time zone)
   OWNER TO postgres;
 
 
-select ptraj_index_to3dgeom(geometry(rect), start_time, end_time) from mpseq_2124049_traj where mpid=1 and segid=1;  
+select st_asewkt(ptraj_index_to3dgeom(rect, start_time, end_time)) from mpseq_2491759_traj where mpid=9226 and segid=1;  
 
 select st_astext(ptraj_index_to3dgeom(geometry(rect), start_time, end_time)) from mpseq_2124049_traj where mpid=1 and segid=1;
 

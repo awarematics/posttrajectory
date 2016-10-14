@@ -114,9 +114,10 @@ $delete_mpoint_seg$ LANGUAGE plpgsql;
 	Modified Date : 2016-05-22
 */
 
-CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$
-DECLARE
-	tb_name			text;
+CREATE OR REPLACE FUNCTION public.insert_trigger()
+  RETURNS trigger AS
+$BODY$
+DECLARE	
 	segtable_oid		text;
 	segcolumn_name		text;
 	sequence_name		text;
@@ -125,11 +126,8 @@ DECLARE
 	sql_text		text;
 	records			record;
 	
- BEGIN
-	
-	tb_name := 'taxi';
-
-	sql_text := 'select f_segtableoid, f_trajectory_column, f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(tb_name);
+ BEGIN	
+	sql_text := 'select f_segtableoid, f_trajectory_column, f_sequence_name from trajectory_columns where f_table_name = ' || quote_literal(TG_RELNAME);
 	
 	--f_segtableoid, f_trajectory_column, f_sequence_name 가져온다. 
 	execute sql_text into records;
@@ -156,8 +154,10 @@ DECLARE
 		
 	return NEW;
 END
-$$
-LANGUAGE 'plpgsql';
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
 
 
 -- AddTrajectoryColumn 함수 array 크기를 지정해주지 않는다.
