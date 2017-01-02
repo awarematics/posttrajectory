@@ -236,8 +236,8 @@ DECLARE
 	period2		alias for $2;
 	
 BEGIN
-	IF (period2.startTime < period1.startTime AND period1.endTime < period2.endTime) 
-		OR (period1.startTime < period2.startTime AND period2.endTime < period1.endTime) THEN
+	IF (period2.startTime <= period1.startTime AND period1.endTime <= period2.endTime) 
+		OR (period1.startTime <= period2.startTime AND period2.endTime <= period1.endTime) THEN
 
 		RETURN true;
 	END IF;

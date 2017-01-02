@@ -1736,3 +1736,20 @@ LANGUAGE 'plpgsql';
 
 
 
+CREATE OR REPLACE FUNCTION periods(timestamp, timestamp) RETURNS periods AS
+$$
+DECLARE
+	start_time	alias for $1;
+	end_time	alias for $2;
+	p		periods;
+BEGIN	
+	p.starttime := start_time;
+	p.endtime := end_time;
+
+	RETURN p;
+END
+$$
+  LANGUAGE 'plpgsql' VOLATILE STRICT
+  COST 100;
+
+
