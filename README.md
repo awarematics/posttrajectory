@@ -61,7 +61,7 @@ select * from taxi;
 
 -- new update statement
 UPDATE taxi 
-SET traj = append(traj, 'MPOINT (1510, 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
+SET traj = append(traj, 'MPOINT (1510 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
 WHERE taxi_id = 1;
 
 -- To be deprecated
