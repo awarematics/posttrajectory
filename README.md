@@ -9,6 +9,9 @@ This system have been developed by Awarematics Group, School of Computer, Inform
 Pyung Woo Yang, Kunsan National University and Turbosoft Inc., manner7979@gmail.com 
 Kwang Woo Nam, Kunsan National University, kwnam@kunsan.ac.kr
 
+## Alumni
+Kihyun Yoo, Kunsan National University
+
 
 ## Creation Trajectory Table
 
