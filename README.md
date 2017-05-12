@@ -32,7 +32,7 @@ create table taxi(
 select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
 </pre>
 
-## Insert an Moving Object
+## Insert Moving Objects
 
 <pre>
 insert into taxi values(1, '57NU2001', 'Optima', 'hongkd7');
