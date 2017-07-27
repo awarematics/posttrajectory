@@ -75,6 +75,8 @@ SET traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-
 					   ( tpoint(st_point(1320, 1220),TIMESTAMP '2010-01-26 15:25:40+09') ), 
 					   ( tpoint(st_point(1405, 1175),TIMESTAMP '2010-01-26 15:29:40+09') ), 
 					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )
+WHERE  taxi_id = 1;
+
 </pre>
 
 ## Remove GPS Stream or Partial Trajectory in a Moving Object
