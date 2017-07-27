@@ -356,6 +356,7 @@ DECLARE
 	real_schema name;
 	sql text;
 	table_oid text;
+	temp_segtable_name text;
 	f_trajectory_segtable_name text;
 	f_sequence_name	text;
 	f_segtable_oid	oid;
@@ -443,11 +444,11 @@ BEGIN
 	EXECUTE sql;
 	
 
-	f_trajectory_segtable_name := 'mpseq_' || table_oid || '_' || f_column_name;
+	temp_segtable_name := 'mpseq_' || table_oid || '_' || f_column_name;
 
 	
 	--table_name의 column_name을 위한 mppsegtable 생성
-	EXECUTE 'CREATE TABLE ' || f_trajectory_segtable_name || ' 
+	EXECUTE 'CREATE TABLE ' || temp_segtable_name || ' 
 		(
 			mpid		integer,
 			segid		integer,
@@ -462,10 +463,19 @@ BEGIN
 
 --	execute pg_sleep(1);
 
+-- segtable_id setting and alter table name
+	sql := 'select '|| quote_literal(temp_segtable_name) ||'::regclass::oid';
+	RAISE DEBUG '%', sql;
+	EXECUTE sql INTO f_segtable_oid;
+	
+	-- segment table name
+	f_trajectory_segtable_name := 'mpseq_' || f_segtable_oid ;
+	
+	EXECUTE 'ALTER TABLE  temp_segtable_name RENAME TO f_trajectory_segtable_name';
 	EXECUTE 'ALTER TABLE ' || f_trajectory_segtable_name || '
 		ALTER COLUMN tpseg SET STORAGE EXTERNAL';
 	
-	f_segtable_oid := table_oid;
+
 	/*
 	sql := 'select '|| quote_literal(f_trajectory_segtable_name) ||'::regclass::oid';
 	RAISE DEBUG '%', sql;
@@ -634,10 +644,12 @@ DECLARE
 	--새로운 row로 데이터 삽입을 할때 segid값을 정하기 위한 변수
 	new_segid			integer;
 BEGIN
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
-	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid || traj_suffix;
+	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid ;
 
 	mpid := f_trajectroy.moid;
 	
