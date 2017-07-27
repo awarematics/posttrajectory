@@ -471,9 +471,9 @@ BEGIN
 	-- segment table name
 	f_trajectory_segtable_name := 'mpseq_' || f_segtable_oid ;
 	
-	EXECUTE 'ALTER TABLE  temp_segtable_name RENAME TO f_trajectory_segtable_name';
-	EXECUTE 'ALTER TABLE ' || f_trajectory_segtable_name || '
-		ALTER COLUMN tpseg SET STORAGE EXTERNAL';
+	EXECUTE 'ALTER TABLE ' || quote_ident(temp_segtable_name) || ' RENAME TO ' || quote_ident(f_trajectory_segtable_name);
+--	EXECUTE 'ALTER TABLE ' || quote_ident(f_trajectory_segtable_name) || '
+--		ALTER COLUMN tpseg SET STORAGE EXTERNAL';
 	
 
 	/*
