@@ -647,7 +647,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid ;
 
@@ -815,7 +815,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 		
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 			
 	f_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
@@ -939,7 +939,7 @@ BEGIN
 
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
@@ -1060,7 +1060,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 		
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 			
 	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
@@ -1255,7 +1255,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
@@ -1320,7 +1320,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid || traj_suffix;
 
@@ -1380,7 +1380,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 		
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 			
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
@@ -1452,7 +1452,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
@@ -1491,7 +1491,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 
@@ -1529,7 +1529,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 
@@ -1722,7 +1722,7 @@ BEGIN
 	-- traj_prefix := current_setting('traj.prefix');
 	-- traj_suffix := current_setting('traj.suffix');
 	
-	traj_prefix : = 'mpseq_' ;
+	traj_prefix := 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
