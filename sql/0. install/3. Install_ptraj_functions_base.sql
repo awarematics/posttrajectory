@@ -812,9 +812,11 @@ DECLARE
 
 BEGIN
 
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
 		
+	traj_prefix : = 'mpseq_' ;
+			
 	f_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) ||
@@ -935,8 +937,9 @@ DECLARE
 	
 BEGIN
 
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	traj_prefix : = 'mpseq_' ;
 		
 	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
@@ -1054,9 +1057,11 @@ DECLARE
 	new_before_segid		integer;
 	new_row_segid			integer;
 BEGIN
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
 		
+	traj_prefix : = 'mpseq_' ;
+			
 	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
 	EXECUTE 'select array_upper($1, 1)'
@@ -1247,8 +1252,10 @@ DECLARE
 	sql		text;
 	
 BEGIN
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
 	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
 	
@@ -1310,8 +1317,10 @@ DECLARE
 	return_value			tpoint[];
 BEGIN
 	
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || f_trajectroy.segtableoid || traj_suffix;
 
@@ -1368,9 +1377,11 @@ DECLARE
 	intersect_tpseg			tpoint[];
 
 BEGIN
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
 		
+	traj_prefix : = 'mpseq_' ;
+			
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || user_traj.moid;
@@ -1438,8 +1449,10 @@ DECLARE
 	data				record;
 	rect				box2d;
 BEGIN
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
@@ -1475,8 +1488,10 @@ DECLARE
 
 	
 BEGIN	
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 
@@ -1511,8 +1526,10 @@ DECLARE
 	
 BEGIN	
 	
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 
@@ -1702,8 +1719,10 @@ DECLARE
 	
 BEGIN
 
-	traj_prefix := current_setting('traj.prefix');
-	traj_suffix := current_setting('traj.suffix');
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix : = 'mpseq_' ;
 		
 	f_trajectory_segtable_name := traj_prefix || user_traj.segtableoid || traj_suffix;
 	
