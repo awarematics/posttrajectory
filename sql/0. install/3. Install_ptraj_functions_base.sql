@@ -172,165 +172,15 @@ DECLARE
 	srid		alias for $4;
 	new_type 	alias for $5;
 	dimension 	alias for $6;
-	real_schema name;
-	sql text;
-	table_oid text;
-	f_trajectory_segtable_name text;
-	f_sequence_name	text;
-	f_segtable_oid	oid;
-
+	
+	result;
 BEGIN
 
-	-- Verify geometry type
-	IF ( NOT  (new_type = 'MOVINGPOINT') )
-	THEN
-		RAISE EXCEPTION 'Invalid type name - valid ones are:
-		MOVINGPOINT';
-		RETURN 'fail';
-	END IF;
-
-	--verify SRID
+	execute 'select addTrajectoryColumn($1, $2, $3, $4, $5, $6, 10)'
+	into result using f_schema_name, f_table_name, f_column_name, srid, new_type, deimension;
 	
-	-- Verify schema  테이블에 catalog_name & schema_name 추가
-	IF ( f_schema_name IS NOT NULL AND f_schema_name != '' ) THEN
-		sql := 'SELECT nspname FROM pg_namespace ' ||
-			'WHERE text(nspname) = ' || quote_literal(f_schema_name) ||
-			'LIMIT 1';
-		RAISE DEBUG '%', sql;
-		EXECUTE sql INTO real_schema;
-
-		IF ( real_schema IS NULL ) THEN
-			RAISE EXCEPTION 'Schema % is not a valid schemaname', quote_literal(f_schema_name);
-			RETURN 'fail';
-		END IF;
-	END IF;
-
-	IF ( real_schema IS NULL ) THEN
-		RAISE DEBUG 'Detecting schema';
-		sql := 'SELECT n.nspname AS schemaname ' ||
-			'FROM pg_catalog.pg_class c ' ||
-			  'JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace ' ||
-			'WHERE c.relkind = ' || quote_literal('r') ||
-			' AND n.nspname NOT IN (' || quote_literal('pg_catalog') || ', ' || quote_literal('pg_toast') || ')' ||
-			' AND pg_catalog.pg_table_is_visible(c.oid)' ||
-			' AND c.relname = ' || quote_literal(f_table_name);
-		RAISE DEBUG '%', sql;
-		EXECUTE sql INTO real_schema;
-
-		IF ( real_schema IS NULL ) THEN
-			RAISE EXCEPTION 'Table % does not occur in the search_path', quote_literal(f_table_name);
-			RETURN 'fail';
-		END IF;
-	END IF;
-
-	-- 삽입될 테이블의 OID를 알아본다.
-	sql := 'select '|| quote_literal(f_table_name) ||'::regclass::oid';
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO table_oid;
-
-
-	f_sequence_name = quote_ident(f_table_name) || '_' || quote_ident(f_column_name) || '_mpointid_seq';
-
-	-- 시퀀스 삽입전 기존에 만든 시퀀스 삭제(배포버젼에서는 삭제 해야함)
-	--drop SEQUENCE taxi_traj_mpointid_seq;
-	-- user maked table의 mpoint 컬럼에 자동증가속성을 부여해준다.
-	sql := 'CREATE SEQUENCE ' || quote_ident(f_sequence_name) || ' START 1';
-	RAISE DEBUG '%', sql;
-	EXECUTE sql;
-
-	-- Add trajectory column to table
-	sql := 'ALTER TABLE ' || quote_ident(f_table_name) || 
-		' ADD ' || quote_ident(f_column_name) || ' trajectory';
-	RAISE DEBUG '%', sql;
-	EXECUTE sql;	
-
-
-	-- Delete stale record in geometry_columns (if any)
-	sql := 'DELETE FROM trajectory_columns WHERE
-		f_table_name = ' || quote_literal(f_table_name) ||
-		' AND f_trajectory_column = ' || quote_literal(f_column_name);
-	RAISE DEBUG '%', sql;
-	EXECUTE sql;
-
-	sql := 'DELETE FROM trajectory_columns WHERE
-		f_table_catalog = ' || quote_literal('') ||
-		' AND f_table_schema = ' ||quote_literal(real_schema) ||
-		' AND f_table_name = ' || quote_literal(f_table_name) ||
-		' AND f_trajectory_column = ' || quote_literal(f_column_name);
-	RAISE DEBUG '%', sql;
-	EXECUTE sql;
-
+	RETURN result;
 	
-
-	f_trajectory_segtable_name := 'mpseq_' || table_oid || '_' || f_column_name;
-
-	
-	--table_name의 column_name을 위한 mppsegtable 생성
-	EXECUTE 'CREATE TABLE ' || f_trajectory_segtable_name || ' 
-		(
-			mpid		integer,
-			segid		integer,
-			next_segid	integer,
-			before_segid	integer,
-			mpcount		integer,
-			rect		box2d,
-			start_time	timestamp without time zone,
-			end_time	timestamp without time zone,
-			tpseg		tpoint[]
-		)';
-
---	execute pg_sleep(1);
-	f_segtable_oid := table_oid;
-	/*
-	sql := 'select '|| quote_literal(f_trajectory_segtable_name) ||'::regclass::oid';
-	RAISE DEBUG '%', sql;
-	EXECUTE sql INTO f_segtable_oid;
-	*/
-
-
-	-- Add record in geometry_columns  compress 추가 어떻게 할건지.
-	sql := 'INSERT INTO trajectory_columns (f_table_catalog, f_table_schema, f_table_name, ' ||
-			'f_trajectory_column, f_trajectory_segtable_name, coord_dimension, srid, type, '|| 
-			'f_segtableoid, f_sequence_name)' ||
-		' VALUES (' ||
-		quote_literal('') || ',' ||
-		quote_literal(real_schema) || ',' ||
-		quote_literal(f_table_name) || ',' ||
-		quote_literal(f_column_name) || ',' ||
-		quote_literal(f_trajectory_segtable_name) || ',' || 
-		dimension::text || ',' ||
-		srid::text || ',' ||
-		quote_literal(new_type) || ', ' ||
-		quote_literal(f_segtable_oid) || ', ' ||
-		quote_literal(f_sequence_name) || ')';
-	RAISE DEBUG '%', sql;
-	EXECUTE sql;
-
-	-- traj칼럽의 초기값을 설정
-	sql := 'UPDATE ' || quote_ident(f_table_name)|| ' SET ' || quote_ident(f_column_name) || '.moid '
-		|| '= NEXTVAL(' || quote_literal(f_sequence_name) ||'), ' || quote_ident(f_column_name) || '.segtableoid = ' || f_segtable_oid;
-	RAISE DEBUG '%', sql;
-	EXECUTE sql;
-
-
-
-	EXECUTE 'CREATE TRIGGER insert_trigger 
-		BEFORE INSERT ON ' || quote_ident(f_table_name) || ' FOR EACH ROW EXECUTE PROCEDURE insert_trigger()';
-
-
-	
-	EXECUTE 'CREATE TRIGGER delete_mpoint_seg 
-		AFTER DELETE ON ' || quote_ident(f_table_name) || ' FOR EACH ROW EXECUTE PROCEDURE delete_mpoint_seg()';
-
-
-
-	RETURN
-		real_schema || '.' ||
-		f_table_name || '.' || f_column_name ||
-		' SRID:' || srid::text ||
-		' TYPE:' || new_type ||
-		' DIMS:' || dimension::text || ' ';
-
 END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE STRICT
@@ -630,11 +480,9 @@ DECLARE
 	segid				integer;
 	mp_count			integer;
 	mp_seq				record;
+	max_tpseg_count	integer;
 
-	-- part_id				integer;
-	box_part			box2d;
 	cnt_mpid			integer;
-	cnt				integer;
 	
 	sql				text;
 
@@ -664,88 +512,56 @@ BEGIN
 	RAISE DEBUG '%', sql;
 	EXECUTE sql INTO tp_seg_size;
 
-	-- 삽입되는 포인트를 포함하는 box2d 값을 가져온다.
-	sql := 'SELECT partition FROM static_partition WHERE ST_INTERSECTS(partition, $1);';
-	EXECUTE sql INTO box_part USING tp.pnt;
-	RAISE DEBUG '%', sql;
-	RAISE notice '%', box_part;
-	
 	-- 최초로 삽입될 때
 	IF (cnt_mpid < 1) THEN
 		-- RAISE NOTICE '최초 삽입';
 		
 		-- mpid, segid, start_time, end_time, tpseg 삽입
 		EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) || '(mpid, segid, mpcount, rect, start_time, end_time, tpseg) 
-			VALUES($1, 1, 1, $2, TIMESTAMP '|| quote_literal(tp.ts) || ', TIMESTAMP  '|| quote_literal(tp.ts) || ', ARRAY[($3, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
-		USING mpid, box_part, tp.pnt;
+			VALUES($1, 1, 1, st_makebox2d( $2, $2), TIMESTAMP '|| quote_literal(tp.ts) || ', TIMESTAMP  '|| quote_literal(tp.ts) || ', ARRAY[($2, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
+		USING mpid, tp.pnt;
 	END IF;
 	
 	-- 최초 삽입은 아닐때
 	IF(cnt_mpid > 0) THEN
+
 		-- 삽입할 포인터의 row를 결정해 주어야 한다. 
-		EXECUTE 'SELECT MAX(segid) FROM ' || quote_ident(f_trajectory_segtable_name) || ' WHERE mpid = $1'
-		INTO segid USING mpid;
-		
-		-- tpseg가 꽉찼는지 확인하기 위하여 배열의 최대 크기를 가져온다
-		sql := 'SELECT mpcount, tpseg FROM ' || quote_ident(f_trajectory_segtable_name) || ' WHERE mpid = ' || f_trajectroy.moid || ' AND segid = ' || segid;
+		-- next_segid가 null이라면 마지막 seg이므로 이 row에 삽입을 하면된다.
+		sql := 'select segid from ' || quote_ident(f_trajectory_segtable_name) ||
+				' where mpid = ' || f_trajectroy.moid || ' and next_segid IS NULL';
 		RAISE DEBUG '%', sql;
-		EXECUTE sql INTO mp_seq;
+		EXECUTE sql INTO segid;
+
+		-- tpseg가 꽉찼는지 확인하기 위하여 배열의 최대 크기를 가져온다
+		sql := 'select array_upper((select tpseg from ' || quote_ident(f_trajectory_segtable_name) || 
+			' where mpid = ' || f_trajectroy.moid || ' and segid = ' || segid || '), 1)';
+		RAISE DEBUG '%', sql;
+		EXECUTE sql INTO max_tpseg_count;
 		
 		-- next_segid가 null인 segid값이 있고 tpseg가 꽉 차지 않았다면 현재 segid값에 데이터를 삽입
-		IF(mp_seq.mpcount < tp_seg_size) THEN
-			
+		IF( segid IS NOT NULL AND max_tpseg_count < tp_seg_size) THEN-----조건문에 tpseg의 최대값을 넣어줘야함. 현재는 3
 			EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
-				' SET mpcount = mpcount+1, end_time = $1, tpseg = array_append(tpseg, $2) 
-				WHERE mpid = $3 AND segid = $4 '
-			USING tp.ts, tp, mpid, segid;
-
-			-- 현재 append 하려는 레코드의 partition_id 가 같은지를 검사하기 위한 count(*) 검색
-			EXECUTE 'SELECT COUNT(*) FROM ' || quote_ident(f_trajectory_segtable_name) || ' WHERE mpid = $1 AND segid = $2 AND ST_EQUALS(rect, $3)'
-			INTO cnt USING mpid, segid, box_part;
-			RAISE notice '1 - cnt : %', cnt;
-			-- cnt가 0일 경우, 현재 append 하려는 레코드의 partition_id 가 다름, 새로운 segid를 생성하고, 새로운 레코드의 처음으로 삽입
-			IF(cnt < 1) THEN
-				new_segid := segid + 1;
-
-				EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) || '(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-					VALUES($1, ' || new_segid || ', $2, 2, $3, TIMESTAMP ' || quote_literal(mp_seq.tpseg[mp_seq.mpcount].ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
-					', ARRAY[($4), ($5, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
-				USING mpid, segid, box_part, mp_seq.tpseg[mp_seq.mpcount], tp.pnt;
-				
-				-- 새로운 segid값에 데이터를 삽입후 전에 사용하던 segid에 next_segid값을 설정해준다.
-				EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
-					' SET next_segid = ' || new_segid || ' WHERE mpid = $1 AND segid = $2'
-				USING mpid, segid;
-			END IF;
-						
-		-- tpseg가 꽉 찾다면 새로운 segid를 생성하여 데이터를 삽입하여야 한다. 
-		ELSE 	
+				' set mpcount = mpcount+1, rect = st_combinebbox( rect::box2d, $1), end_time = $2, tpseg = array_append(tpseg, $3) 
+				where mpid = $4 and segid = $5 '
+			USING tp.pnt, tp.ts, tp, mpid, segid;
+		-- next_segid가 null이 아니거나 tpseg가 꽉 찾다면 새로운 segid를 생성하여 데이터를 삽입하여야 한다. 
+		ELSE 
 			-- next_segid가 null이 아니라면 새로운 row를 생성하여 삽입
 			-- 삽입전 최대 segid값을 알아야 한다.
-			new_segid := segid + 1;
+			EXECUTE 'select MAX(segid) from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = $1'
+			INTO new_segid USING mpid;
 
-			-- 현재 append 하려는 레코드의 partition_id 가 같은지를 검사하기 위한 count(*) 검색
-			EXECUTE 'SELECT COUNT(*) FROM ' || quote_ident(f_trajectory_segtable_name) || ' WHERE mpid = $1 AND segid = $2 AND ST_EQUALS(rect, $3)'
-			INTO cnt USING mpid, segid, box_part;
-			RAISE notice '2 - cnt : %', cnt;
-			-- cnt가 0일 경우, 현재 append 하려는 레코드의 partition_id 가 다름, 새로운 segid를 생성하고, 새로운 레코드의 처음으로 삽입
-			IF(cnt < 1) THEN
-				
-				EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) || '(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-					VALUES($1, ' || new_segid || ', $2, 2, $3, TIMESTAMP ' || quote_literal(mp_seq.tpseg[mp_seq.mpcount].ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
-					', ARRAY[($4), ($5, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
-				USING mpid, segid, box_part, mp_seq.tpseg[mp_seq.mpcount], tp.pnt;
-			ELSE
-				EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) ||'(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
-					VALUES($1, ' || new_segid || ', $2, 1, $3, TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
-					' , ARRAY[($4, TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
-				USING mpid, segid, box_part, tp.pnt;
-			END IF;
+			EXECUTE 'INSERT INTO ' || quote_ident(f_trajectory_segtable_name) ||'(mpid, segid, before_segid, mpcount, rect, start_time, end_time, tpseg) 
+				VALUES( $1,  ' || new_segid+1 || ', $2, 1, st_makebox2d( $3, $3), TIMESTAMP ' || quote_literal(tp.ts) || ' , TIMESTAMP ' || quote_literal(tp.ts) ||
+				' , ARRAY[( $3 , TIMESTAMP ' || quote_literal(tp.ts) || ')]::tpoint[])'
+			USING f_trajectroy.moid, segid, tp.pnt;
 			-- 새로운 segid값에 데이터를 삽입후 전에 사용하던 segid에 next_segid값을 설정해준다.
 			EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
-				' SET next_segid = ' || new_segid+1 || ' WHERE mpid = $1 AND segid = $2'
+				' set next_segid = ' || new_segid+1 || ' where mpid = $1 and segid = $2'
 			USING mpid, segid;
+				
 		END IF;
+
 	END IF;
 
 	return f_trajectroy;
