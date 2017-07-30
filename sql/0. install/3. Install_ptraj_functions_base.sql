@@ -603,11 +603,7 @@ DECLARE
 	end_time			alias for $3;
 	result_tp			tpoint[];
 
-	traj_prefix			char(50);
-	traj_suffix			char(50);
-	
-	f_trajectory_segtable_name	char(200);
-	
+	f_trajectory_segtable_name	text;
 	data				RECORD;
 	tpseg_data			tpoint[];
 	sql				text;
@@ -619,6 +615,8 @@ DECLARE
 	i				integer;
 	j				integer;
 	tpseg_size			integer;
+	
+	traj_prefix	text;
 
 	--row가 삭제시 필요한 next_id와 before_segid를 읽어오기 위한 변수
 	new_next_segid			integer;
@@ -627,14 +625,10 @@ DECLARE
 	new_rect			geometry;
 
 BEGIN
-
-	-- traj_prefix := current_setting('traj.prefix');
-	-- traj_suffix := current_setting('traj.suffix');
-		
 	traj_prefix := 'mpseq_' ;
-			
-	f_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
-	
+		
+	f_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid ;
+
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) ||
 		' WHERE mpid = '|| c_trajectory.moid;
 
@@ -649,45 +643,45 @@ BEGIN
 		IF( ( data.start_time <= end_time ) AND ( data.end_time >= start_time ) ) THEN
 			WHILE( i <=  tpseg_size ) LOOP
 				-- 새로운 값이 들어갈 위치를 찾는다.
-				IF( ( result_tp[i].ptime >= start_time ) AND ( result_tp[i].ptime <= end_time ) ) THEN
+				IF( ( result_tp[i].ts >= start_time ) AND ( result_tp[i].ts <= end_time ) ) THEN
 					EXECUTE 'UPDATE ' || quote_ident(f_trajectory_segtable_name) || 
 						' SET tpseg[$1] = NULL WHERE mpid = ' || data.mpid || ' and segid = ' || data.segid 
 					USING i;
 				END IF;
 					
-				EXECUTE 'select tpseg[' || i || '].p from ' || quote_ident(f_trajectory_segtable_name) || 
+				EXECUTE 'select tpseg[$1].pnt from ' || quote_ident(f_trajectory_segtable_name) || 
 					' WHERE mpid = ' || data.mpid || ' and segid = ' || data.segid 
-				INTO new_tpoint.pnt;
+				INTO new_tpoint.pnt USING i;
 
-				EXECUTE 'select tpseg[' || i || '].ptime from ' || quote_ident(f_trajectory_segtable_name) || 
+				EXECUTE 'select tpseg[$1].ts from ' || quote_ident(f_trajectory_segtable_name) || 
 					' WHERE mpid = ' || data.mpid || ' and segid = ' || data.segid 
-				INTO new_tpoint.ts;
+				INTO new_tpoint.ts USING i;
 
 				-- tpseg의 값을 수정하였다면 새로운 tpseg로 붙여주어 나중에 row에 새로운 tpseg로 변경해준다.
 				IF( new_tpoint IS NOT NULL) THEN
 					new_tpseg[j] := new_tpoint;
 
 					EXECUTE 'update ' || quote_ident(f_trajectory_segtable_name) || 
-					' set start_time = $1[(SELECT array_lower( $1 , 1))].ptime , end_time = $1[(SELECT array_upper( $1 , 1))].ptime ' ||
+					' set start_time = $1[(SELECT array_lower( $1 , 1))].ts , end_time = $1[(SELECT array_upper( $1 , 1))].ts ' ||
 					'WHERE mpid = ' || data.mpid || ' and segid = ' || data.segid
 					USING new_tpseg;
 
-					-- while루프 안으로 들어왔다면 변경할 값이 있다는 것이기에 rect도 변경을 해주어야 한다.
-					IF( i = 1) THEN
+					-- while루프 안으로 들어왔다면 z	
+					IF( j = 1) THEN
 						execute 'update ' || quote_ident(f_trajectory_segtable_name) ||
 							' set rect = ( select st_makebox2d( $1, $1) ) ' ||
-							' where mpid = $2 and segid = $2'
-						using new_tpseg[i].p, data.mpid, data.segid;
+							' where mpid = $2 and segid = $3'
+						using new_tpseg[1].pnt, data.mpid, data.segid;
 					ELSE
 						execute 'select rect from ' || quote_ident(f_trajectory_segtable_name) ||
 							' where mpid = $1 and segid = $2' 
 						into new_rect using data.mpid, data.segid;
 						execute 'update ' || quote_ident(f_trajectory_segtable_name) ||
-							' set rect = ( select st_combine_bbox( $1::box2d, $2.p ) ) ' ||
+							' set rect = ( select st_combinebbox( $1::box2d, $2.pnt ) ) ' ||
 							' where mpid = $3 and segid = $4'
 						using new_rect, new_tpseg[j], data.mpid, data.segid;
-					j := j+1;
 					END IF;
+					j := j+1;
 				END IF;
 				i := i+1;
 
@@ -730,7 +724,7 @@ BEGIN
 	RETURN c_trajectory;
 END
 $$
-LANGUAGE 'plpgsql' ;
+LANGUAGE 'plpgsql' 
 
 
 CREATE OR REPLACE FUNCTION modify(trajectory, tpoint) RETURNS trajectory AS
