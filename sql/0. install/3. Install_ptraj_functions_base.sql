@@ -18,7 +18,9 @@ CREATE OR REPLACE FUNCTION modify(trajectory, tpoint) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION modify(trajectory, tpoint[]) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION modify(trajectory, timestamp, timestamp, tpoint[]) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION slice(trajectory, timestamp, timestamp) RETURNS tpoint[];
-CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION slice(trajectory, double, double, double, double) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION slice(trajectory, geometry) RETURNS tpoint[];
+--CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[];
 CREATE OR REPLACE FUNCTION getRect_trajectory(trajectory) RETURNS setof box2d;
@@ -1153,6 +1155,74 @@ BEGIN
 			WHILE tpoint_MaxNumber >= nowTpsegNumber LOOP
 				EXECUTE 'select st_intersects( ( select geometry( $1 ) ), $2)'
 				INTO isOverlap_point USING user_rect, tpseg[nowTpsegNumber].pnt;
+--                RAISE NOTICE 'point overlaps(%)', isOverlap_point;
+				IF(isOverlap_point) THEN
+					select_tpoint := tpseg[nowTpsegNumber];
+					--execute 'select st_astext($1)'
+					--into return_data using select_tpoint.p;
+                    EXECUTE 'select array_append($1, $2)'
+					INTO return_value USING return_value, select_tpoint;
+				END IF;
+				nowTpsegNumber := nowTpsegNumber + 1;
+				
+			END LOOP;
+		END IF;
+	END LOOP;
+	return return_value;
+END
+
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE
+COST 100;
+
+-- SLICE 함수 trajectory와 geometry를 입력한다.
+CREATE OR REPLACE FUNCTION slice(trajectory, geometry)
+  RETURNS tpoint[] AS
+$BODY$
+DECLARE
+	input_geometry		alias for $2;
+	f_trajectory			alias for $1;
+	isIntersect_box2d		boolean;
+	isOverlap_point			boolean;
+	tpoint_MaxNumber		integer;
+	nowTpsegNumber			integer;
+	tpseg				tpoint[];
+	select_tpoint			tpoint;
+	return_data			text;
+
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
+	sql				text;
+	data				record;
+
+	return_value			tpoint[];
+    
+BEGIN
+	
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid;
+    
+	FOR data IN EXECUTE sql LOOP
+		execute 'select st_intersects(( select geometry( $1 ) ), ( select geometry( $2) ) )'
+		into isIntersect_box2d using data.rect, input_geometry;
+        RAISE NOTICE 'rect intersects(%, %)', data.mpid, isIntersect_box2d;
+		IF(isIntersect_box2d) THEN
+			tpseg := data.tpseg;
+			nowTpsegNumber := 1;
+			sql := 'select array_upper($1, 1)';
+			EXECUTE sql INTO tpoint_MaxNumber using tpseg;
+			WHILE tpoint_MaxNumber >= nowTpsegNumber LOOP
+				EXECUTE 'select st_intersects( ( select geometry( $1 ) ), $2)'
+				INTO isOverlap_point USING input_geometry, tpseg[nowTpsegNumber].pnt;
 --                RAISE NOTICE 'point overlaps(%)', isOverlap_point;
 				IF(isOverlap_point) THEN
 					select_tpoint := tpseg[nowTpsegNumber];
