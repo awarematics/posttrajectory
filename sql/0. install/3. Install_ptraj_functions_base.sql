@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, timestamp) RETURNS traj
 CREATE OR REPLACE FUNCTION modify(trajectory, tpoint) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION modify(trajectory, tpoint[]) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION modify(trajectory, timestamp, timestamp, tpoint[]) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION trajectory_select(trajectory, timestamp, timestamp) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION slice(trajectory, timestamp, timestamp) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[];
@@ -1043,7 +1043,7 @@ LANGUAGE 'plpgsql';
 
 
 --SELECT 함수 trajectory와 시작시간 끝시간을 입력해야 한다.
-CREATE OR REPLACE FUNCTION trajectory_select(trajectory, timestamp, timestamp) RETURNS tpoint[] AS
+CREATE OR REPLACE FUNCTION slice(trajectory, timestamp, timestamp) RETURNS tpoint[] AS
 $$
 DECLARE
 	c_trajectory	alias for $1;
