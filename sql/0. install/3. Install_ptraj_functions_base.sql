@@ -173,13 +173,13 @@ DECLARE
 	new_type 	alias for $5;
 	dimension 	alias for $6;
 	
-	result;
+	resultvalue	text;
 BEGIN
 
 	execute 'select addTrajectoryColumn($1, $2, $3, $4, $5, $6, 10)'
-	into result using f_schema_name, f_table_name, f_column_name, srid, new_type, deimension;
+	into resultvalue using f_schema_name, f_table_name, f_column_name, srid, new_type, dimension;
 	
-	RETURN result;
+	RETURN resultvalue;
 	
 END;
 $BODY$
@@ -1042,7 +1042,7 @@ $$
 LANGUAGE 'plpgsql';
 
 
---SELECT 함수 trajectory와 시작시간 끝시간을 입력해야 한다.
+--SLICE 함수 trajectory와 시작시간 끝시간을 입력해야 한다.
 CREATE OR REPLACE FUNCTION slice(trajectory, timestamp, timestamp) RETURNS tpoint[] AS
 $$
 DECLARE
@@ -1067,7 +1067,7 @@ BEGIN
 	
 	traj_prefix := 'mpseq_' ;
 		
-	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid || traj_suffix;
+	c_trajectory_segtable_name := traj_prefix || c_trajectory.segtableoid;
 	
 	sql := 'select * from ' || quote_ident(c_trajectory_segtable_name) || ' where mpid = ' || c_trajectory.moid || 
 		' order by start_time';
@@ -1096,6 +1096,83 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
+
+
+-- SLICE 함수 trajectory와 4개의 좌표를 입력한다. 
+CREATE OR REPLACE FUNCTION slice(trajectory, double precision, double precision, double precision, double precision)
+  RETURNS tpoint[] AS
+$BODY$
+DECLARE
+	x1				alias for $2;
+	y1				alias for $3;
+	x2				alias for $4;
+	y2				alias for $5;
+	f_trajectory			alias for $1;
+	isIntersect_box2d		boolean;
+	isOverlap_point			boolean;
+	tpoint_MaxNumber		integer;
+	nowTpsegNumber			integer;
+	tpseg				tpoint[];
+	user_rect			box2d;
+	select_tpoint			tpoint;
+	return_data			text;
+
+	traj_prefix			char(50);
+	traj_suffix			char(50);
+	
+	f_trajectory_segtable_name	char(200);
+	
+	sql				text;
+	data				record;
+
+	return_value			tpoint[];
+    
+BEGIN
+	
+	-- traj_prefix := current_setting('traj.prefix');
+	-- traj_suffix := current_setting('traj.suffix');
+	
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+
+	EXECUTE 'select st_makebox2d(st_point($1, $2), st_point($3, $4))'
+	into user_rect using x1, y1, x2, y2;
+	
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid;
+    
+	FOR data IN EXECUTE sql LOOP
+		execute 'select st_intersects(( select geometry( $1 ) ), ( select geometry( $2) ) )'
+		into isIntersect_box2d using data.rect, user_rect;
+        RAISE NOTICE 'rect intersects(%, %)', data.mpid, isIntersect_box2d;
+		IF(isIntersect_box2d) THEN
+			tpseg := data.tpseg;
+			nowTpsegNumber := 1;
+			sql := 'select array_upper($1, 1)';
+			EXECUTE sql INTO tpoint_MaxNumber using tpseg;
+			WHILE tpoint_MaxNumber >= nowTpsegNumber LOOP
+				EXECUTE 'select st_intersects( ( select geometry( $1 ) ), $2)'
+				INTO isOverlap_point USING user_rect, tpseg[nowTpsegNumber].pnt;
+--                RAISE NOTICE 'point overlaps(%)', isOverlap_point;
+				IF(isOverlap_point) THEN
+					select_tpoint := tpseg[nowTpsegNumber];
+					--execute 'select st_astext($1)'
+					--into return_data using select_tpoint.p;
+                    EXECUTE 'select array_append($1, $2)'
+					INTO return_value USING return_value, select_tpoint;
+				END IF;
+				nowTpsegNumber := nowTpsegNumber + 1;
+				
+			END LOOP;
+		END IF;
+	END LOOP;
+	return return_value;
+END
+
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE
+COST 100;
+
 
 
 CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory)
