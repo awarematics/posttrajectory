@@ -29,7 +29,7 @@ create table taxi(
 ## Adding Trajectory Column
 
 <pre>
-select addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
+select tj_addtrajectorycolumn('public', 'taxi', 'traj', 4326, 'MOVINGPOINT', 2, 10);
 </pre>
 
 ## Insert Moving Objects
@@ -46,13 +46,13 @@ insert into taxi values(5, '57NU2005', 'Optima', 'hongkd7');
 <pre>
 
 UPDATE taxi 
-SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
+SET    traj = tj_append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
 WHERE  taxi_id = 1;
 
 ## To bo Plan
 ## MPOINT is ( x y t, x y t, ...) = (float float long, float float long, ...)
 UPDATE taxi 
-SET    traj = append(traj, 'MPOINT( 100 100 5000, 150 150 5001)') 
+SET    traj = tj_append(traj, 'MPOINT( 100 100 5000, 150 150 5001)') 
 WHERE  taxi_id = 1;
 </pre>
 
@@ -67,7 +67,7 @@ select * from taxi;
 
 -- new update statement
 UPDATE taxi 
-SET traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
+SET traj = tj_append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
 					   ( tpoint(st_point(1320, 1220),TIMESTAMP '2010-01-26 15:25:40+09') ), 
 					   ( tpoint(st_point(1405, 1175),TIMESTAMP '2010-01-26 15:29:40+09') ), 
 					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )
@@ -75,7 +75,7 @@ WHERE  taxi_id = 1;
 
 ## To be Plan
 UPDATE taxi 
-SET traj = append(traj, 'MPOINT (1510 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
+SET traj = tj_append(traj, 'MPOINT (1510 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
 WHERE taxi_id = 1;
 
 </pre>
@@ -84,16 +84,16 @@ WHERE taxi_id = 1;
 <pre>
 -- reomve 
 UPDATE taxi 
-SET traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
+SET traj = tj_remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
 WHERE taxi_id = 1;
 
 ## To be Plan
 UPDATE taxi 
-SET traj = remove(traj, 'PERIOD( TIMESTAMP( 2010-01-26 12:33:40+09), TIMESTAMP(2010-01-26 12:37:40+09) )' )
+SET traj = tj_remove(traj, 'PERIOD( TIMESTAMP( 2010-01-26 12:33:40+09), TIMESTAMP(2010-01-26 12:37:40+09) )' )
 WHERE taxi_id = 1;
 
 UPDATE taxi 
-SET traj = remove(traj, 'PERIOD( 5001, 5003)' )
+SET traj = tj_remove(traj, 'PERIOD( 5001, 5003)' )
 WHERE taxi_id = 1;
 </pre>
 
@@ -116,13 +116,13 @@ from taxi;
 
 ## Spatial Slicing and Temporal Slicing
 <pre>
-SELECT tj_slice( traj, timestamp '2010-01-26 12:15:30+09', timestamp '2010-01-26 12:17:00+09'), slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
+SELECT tj_slice( traj, TIMESTAMP '2010-01-26 12:15:30+09', TIMESTAMP '2010-01-26 12:17:00+09'), tj_slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
 from taxi;
 
 SELECT tj_slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
 from taxi
 where tj_overlap( slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')), 
-						tP_period(timestamp '2010-01-26 15:00:00+09', timestamp '2010-01-27 00:00:00+09'));
+						tj_period(TIMESTAMP '2010-01-26 15:00:00+09', TIMESTAMP '2010-01-27 00:00:00+09'));
 
 
 ## To be Plan
