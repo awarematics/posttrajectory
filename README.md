@@ -44,14 +44,15 @@ insert into taxi values(5, '57NU2005', 'Optima', 'hongkd7');
 
 ## Append GPS or a Trajectory Point in a Moving Object
 <pre>
+
+UPDATE taxi 
+SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
+WHERE  taxi_id = 1;
+
+## To bo Plan
 ## MPOINT is ( x y t, x y t, ...) = (float float long, float float long, ...)
 UPDATE taxi 
 SET    traj = append(traj, 'MPOINT( 100 100 5000, 150 150 5001)') 
-WHERE  taxi_id = 1;
-
-## To be deprecated
-UPDATE taxi 
-SET    traj = append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
 WHERE  taxi_id = 1;
 </pre>
 
@@ -66,24 +67,27 @@ select * from taxi;
 
 -- new update statement
 UPDATE taxi 
-SET traj = append(traj, 'MPOINT (1510 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
-WHERE taxi_id = 1;
-
--- To be deprecated
-UPDATE taxi 
 SET traj = append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-01-26 15:21:40+09') ), 
 					   ( tpoint(st_point(1320, 1220),TIMESTAMP '2010-01-26 15:25:40+09') ), 
 					   ( tpoint(st_point(1405, 1175),TIMESTAMP '2010-01-26 15:29:40+09') ), 
 					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )
 WHERE  taxi_id = 1;
 
+## To be Plan
+UPDATE taxi 
+SET traj = append(traj, 'MPOINT (1510 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
+WHERE taxi_id = 1;
+
 </pre>
 
 ## Remove GPS Stream or Partial Trajectory in a Moving Object
 <pre>
 -- reomve 
+UPDATE taxi 
+SET traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
+WHERE taxi_id = 1;
 
--- new statement
+## To be Plan
 UPDATE taxi 
 SET traj = remove(traj, 'PERIOD( TIMESTAMP( 2010-01-26 12:33:40+09), TIMESTAMP(2010-01-26 12:37:40+09) )' )
 WHERE taxi_id = 1;
@@ -91,61 +95,22 @@ WHERE taxi_id = 1;
 UPDATE taxi 
 SET traj = remove(traj, 'PERIOD( 5001, 5003)' )
 WHERE taxi_id = 1;
-
--- To be deprecated
-UPDATE taxi 
-SET traj = remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
-WHERE taxi_id = 1;
-</pre>
-
-
-## Update GPS Stream or Partial Trajectory in a Moving Object
-<pre>
--- new statement
--- if it is needed the point to be changed at the specific time, 
--- modify ( traj, point, atTimeCondition )
-UPDATE taxi 
-SET traj = modify(traj, st_point(1000, 1000), 'TIMESTAMP(2010-01-26 15:40:40+9)');
-WHERE taxi_id = 1;
-
--- new statement
--- modify(trajectory, MPoint, duringPeriodCondition ) 테스트
-update taxi set traj = modify(traj, 'MPOINT( 1000 1000 5005, 1200 1100 5006, 1400 1050 5007, 2000 2000 5008 )', 
-                                    'PERIOD( 5005, 5008 )');
-
--- To be deprecated
--- modify(trajectory, tpoint[])
-update taxi set traj = modify(traj, ARRAY[ (tpoint(st_point(1000, 1000), TIMESTAMP '2010-01-26 15:40:40+9') ),
-					   (tpoint(st_point(1200, 1100), TIMESTAMP '2010-01-26 15:46:40+9') ),
-					   (tpoint(st_point(1400, 1050), TIMESTAMP '2010-01-26 15:49:40+9') ),
-					   (tpoint(st_point(2000, 2000), TIMESTAMP '2010-01-26 15:57:40+9') ) ]::tpoint[] )
-	where taxi_id = 1;
-
--- to be deprecated
--- modify(trajectory, timestamp, timestamp, tpoint[]) 
-update taxi set traj = modify(traj, TIMESTAMP '2010-01-26 14:00:40+9', TIMESTAMP '2010-01-26 14:03:40+9',
-			      ARRAY[ (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:00:40+9') ),
-			             (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:01:40+9') ),
-				     (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:02:40+9') ),
-				     (tpoint(st_point(0000, 0000), TIMESTAMP '2010-01-26 15:03:40+9') ) ]::tpoint[] )
-	where taxi_id = 1;
-
-
 </pre>
 
 
 ## Slicing Trjactories
 <pre>
-select slice( traj, 'TIMESTAMP(2011-02-20 17:13:00)', 'TIMESTAMP(2011-02-20 17:26:00)')
+select slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
 from taxi;
 
+## To be Plan
 select slice( traj, 'PERIOD(5003, 5005)')
 from taxi;
 </pre>
 
 ## Spatial Slicing 
 <pre>
-select slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')) 
+select slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')
 from taxi;
 </pre>
 
@@ -154,30 +119,34 @@ from taxi;
 SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), slice(traj, 'POLYGON(15000 18000, 30000 30000, 15000 18000)')
 from taxi;
 
-SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+SELECT slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
 from taxi
-where T_OVERLAP( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
+where TJ_OVERLAP( slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')), 
+						tP_period(timestamp '2010-01-26 15:00:00+09', timestamp '2010-01-27 00:00:00+09'));
 
+
+## To be Plan
 SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 from taxi
-where T_OVERLAP( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 )');
+where TJ_OVERLAP( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
+
 </pre>
 
 ## Enter Function and Predicates
 <pre>
-SELECT TT_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) 
-from taxi;
+select taxi_id, tt_enter(traj, box2d(geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))::box2d)
+from taxi
 
 SELECT taxi_id, taxi_number
 from taxi
-WHERE TT_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)'));
+where TJ_ENTER(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
 
+
+## To be Plan
 SELECT taxi_id, taxi_number
 from taxi
 WHERE TT_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)', 'PERIOD( 5003, 5008 )'));
 
-SELECT slice( traj, st_geometry('BOX(17 6, 29 31)'::box2d) ),  aa_enter( traj, st_geometry('BOX(17 6, 29 31)'::box2d) )
-from taxi;
 
 </pre>
 
@@ -218,6 +187,3 @@ WHERE m_mindistance(t.traj, b.traj,  TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP 
 3. Python 3.2
 
 </pre>
-
-
-
