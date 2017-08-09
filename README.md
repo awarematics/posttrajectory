@@ -100,52 +100,52 @@ WHERE taxi_id = 1;
 
 ## Slicing Trjactories
 <pre>
-select slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
+select tj_slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', TIMESTAMP '2010-01-26 15:20:40+09')
 from taxi;
 
 ## To be Plan
-select slice( traj, 'PERIOD(5003, 5005)')
+select tj_slice( traj, 'PERIOD(5003, 5005)')
 from taxi;
 </pre>
 
 ## Spatial Slicing 
 <pre>
-select slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')
+select tj_slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')
 from taxi;
 </pre>
 
 ## Spatial Slicing and Temporal Slicing
 <pre>
-SELECT slice( traj, timestamp '2010-01-26 12:15:30+09', timestamp '2010-01-26 12:17:00+09'), slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
+SELECT tj_slice( traj, timestamp '2010-01-26 12:15:30+09', timestamp '2010-01-26 12:17:00+09'), slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
 from taxi;
 
-SELECT slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
+SELECT tj_slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
 from taxi
-where TJ_OVERLAP( slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')), 
+where tj_overlap( slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')), 
 						tP_period(timestamp '2010-01-26 15:00:00+09', timestamp '2010-01-27 00:00:00+09'));
 
 
 ## To be Plan
-SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+SELECT tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 from taxi
-where TJ_OVERLAP( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
+where tj_overlap( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
 
 </pre>
 
 ## Enter Function and Predicates
 <pre>
-select taxi_id, tt_enter(traj, box2d(geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))::box2d)
+select taxi_id, tj_enter(traj, box2d(geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))::box2d)
 from taxi
 
 SELECT taxi_id, taxi_number
 from taxi
-where TJ_ENTER(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
+where tj_enter(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
 
 
 ## To be Plan
 SELECT taxi_id, taxi_number
 from taxi
-WHERE TT_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)', 'PERIOD( 5003, 5008 )'));
+WHERE tj_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)', 'PERIOD( 5003, 5008 )'));
 
 
 </pre>
