@@ -116,7 +116,7 @@ from taxi;
 
 ## Spatial Slicing and Temporal Slicing
 <pre>
-SELECT slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), slice(traj, 'POLYGON(15000 18000, 30000 30000, 15000 18000)')
+SELECT slice( traj, timestamp '2010-01-26 12:15:30+09', timestamp '2010-01-26 12:17:00+09'), slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
 from taxi;
 
 SELECT slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
