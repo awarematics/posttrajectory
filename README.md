@@ -121,14 +121,14 @@ from taxi;
 
 SELECT tj_slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', timestamp '2010-01-26 15:20:40+09')
 from taxi
-where tj_overlap( slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')), 
+where tj_overlap( tj_slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )')), 
 						tj_period(TIMESTAMP '2010-01-26 15:00:00+09', TIMESTAMP '2010-01-27 00:00:00+09'));
 
 
 ## To be Plan
 SELECT tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 from taxi
-where tj_overlap( slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
+where tj_overlap( tj_slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
 
 </pre>
 
