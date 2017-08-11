@@ -49,7 +49,7 @@ UPDATE taxi
 SET    traj = tj_append(traj, tpoint(st_point(200, 200),TIMESTAMP '2010-01-25 12:05:30+09')) 
 WHERE  taxi_id = 1;
 
-## To bo Plan
+## To be
 ## MPOINT is ( x y t, x y t, ...) = (float float long, float float long, ...)
 UPDATE taxi 
 SET    traj = tj_append(traj, 'MPOINT( 100 100 5000, 150 150 5001)') 
@@ -73,7 +73,7 @@ SET traj = tj_append(traj, ARRAY[ ( tpoint(st_point(1510, 1210),TIMESTAMP '2010-
 					   ( tpoint(st_point(1461, 1037),TIMESTAMP '2010-01-26 15:36:40+09') ) ]::tpoint[] )
 WHERE  taxi_id = 1;
 
-## To be Plan
+## To be
 UPDATE taxi 
 SET traj = tj_append(traj, 'MPOINT (1510 1210 5003, 1320 1220 5004, 1405 1175 5005, 1461 1037 5006)' )  
 WHERE taxi_id = 1;
@@ -87,7 +87,7 @@ UPDATE taxi
 SET traj = tj_remove(traj, TIMESTAMP '2010-01-26 12:33:40+09', TIMESTAMP '2010-01-26 12:37:40+09')
 WHERE taxi_id = 1;
 
-## To be Plan
+## To be
 UPDATE taxi 
 SET traj = tj_remove(traj, 'PERIOD( TIMESTAMP( 2010-01-26 12:33:40+09), TIMESTAMP(2010-01-26 12:37:40+09) )' )
 WHERE taxi_id = 1;
@@ -103,7 +103,7 @@ WHERE taxi_id = 1;
 select tj_slice( traj, TIMESTAMP '2010-01-26 14:50:40+09', TIMESTAMP '2010-01-26 15:20:40+09')
 from taxi;
 
-## To be Plan
+## To be
 select tj_slice( traj, 'PERIOD(5003, 5005)')
 from taxi;
 </pre>
@@ -125,7 +125,7 @@ where tj_overlap( tj_slice(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300
 						tj_period(TIMESTAMP '2010-01-26 15:00:00+09', TIMESTAMP '2010-01-27 00:00:00+09'));
 
 
-## To be Plan
+## To be
 SELECT tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 from taxi
 where tj_overlap( tj_slice(traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)')), 'PERIOD( 5003, 5008 ')); 
@@ -142,7 +142,7 @@ from taxi
 where tj_enter(traj, geometry('POLYGON ( ( 300 200, 300 300, 440 300, 440 200, 300 200 ) )'))
 
 
-## To be Plan
+## To be
 SELECT taxi_id, taxi_number
 from taxi
 WHERE tj_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 18000)', 'PERIOD( 5003, 5008 )'));
@@ -182,8 +182,8 @@ WHERE m_mindistance(t.traj, b.traj,  TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP 
 
 ## Install Environment
 <pre>
-1. PostgresQL 9.3
-2. postGIS 2.1.3
+1. PostgresQL 9.6
+2. postGIS 2.3
 3. Python 3.2
 
 </pre>
