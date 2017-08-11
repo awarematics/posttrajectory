@@ -12,6 +12,27 @@
 -- TJ_inside(geometry, geometry)
 -- TJ_atPeriods(tpoint[], periods)
 -- TJ_at(tpoint[], geometry)
+-- TJ_Passes(tpoint[], geometry)
+-- TJ_begin(periods)
+-- TJ_end(periods)
+-- TJ_period(timestamp, timestamp)
+-- TJ_equals(periods, peridos)
+-- TJ_before(periods, periods)
+-- TJ_meets(periods, periods)
+-- TJ_overlaps(periods, periods)
+-- TJ_overlaps(tpoint[], periods)
+-- TJ_During(periods, periods)
+-- TJ_starts(periods, periods)
+-- TJ_finishes(periods, periods)
+-- TJ_intersects(periods, periods)
+-- TJ_isnull(periods)
+-- TJ_periods(tpoint[])
+-- TJ_enter(trajectory, box2d)
+-- TJ_enter(trajectory, geometry)
+-- TJ_enter(trajectory, geometry, periods)
+-- TJ_leave(trajectory, geometry, peirods)
+
+
 
 
 -- FUNCTION DEFINITION
@@ -21,8 +42,6 @@
 -- CREATED BY YOO KI HYUN
 
 -- START TJ_val:
-
-DROP FUNCTION IF EXISTS TJ_val(tpoint);
 
 CREATE OR REPLACE FUNCTION TJ_val(tpoint) RETURNS geometry AS 
 $$
@@ -34,19 +53,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_val:
-------------------------------------------------------------------------------------------
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_inst(tpoint)
--- RETURNS : tpoint -> TIMESTAMP
--- CREATED BY YOO KI HYUN
-
--- START TJ_inst:
-
-DROP FUNCTION IF EXISTS TJ_inst(tpoint);
 
 CREATE OR REPLACE FUNCTION TJ_inst(tpoint) RETURNS TIMESTAMP AS 
 $$
@@ -59,19 +65,6 @@ $$
 
 LANGUAGE 'plpgsql';
 
--- END TJ_inst:
-------------------------------------------------------------------------------------------
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_present(tpoint[], TIMESTAMP)
--- RETURNS : tpoint[], TIMESTAMP -> boolean
--- CREATED BY YOO KI HYUN
-
--- START TJ_present:
-
-DROP FUNCTION IF EXISTS TJ_present(tpoint[], TIMESTAMP);
 
 CREATE OR REPLACE FUNCTION TJ_present(tpoint[], TIMESTAMP) RETURNS boolean AS
 $$
@@ -97,19 +90,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_inst:
-------------------------------------------------------------------------------------------
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_trajectory(tpoint[])
--- RETURNS : tpoint[] -> geometry
--- CREATED BY YOO KI HYUN
-
--- START TJ_trajectory:
-
-DROP FUNCTION IF EXISTS TJ_trajectory(tpoint[]);
 
 CREATE OR REPLACE FUNCTION TJ_trajectory(tpoint[]) RETURNS geometry AS
 $$
@@ -146,19 +126,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_trajectory:
-------------------------------------------------------------------------------------------
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_length(tpoint[])
--- RETURNS : tpoint[] -> real
--- CREATED BY YOO KI HYUN
-
--- START TJ_length:
-
-DROP FUNCTION IF EXISTS TJ_length(tpoint[]);
 
 CREATE OR REPLACE FUNCTION TJ_length(tpoint[]) RETURNS real AS
 $$
@@ -195,19 +162,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_length:
-------------------------------------------------------------------------------------------
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : Mpoint 를 입력받고, Mpoint의 PERIOD를 반환. 
--- NAME : TJ_deftime(tpoint[])
--- RETURNS : tpoint[] -> timestamp[]
--- CREATED BY YOO KI HYUN
-
--- START TJ_deftime:
-
-DROP FUNCTION IF EXISTS TJ_deftime(tpoint[]);
 
 CREATE OR REPLACE FUNCTION TJ_deftime(tpoint[]) RETURNS timestamp[] AS
 $$
@@ -225,37 +179,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_deftime:
-------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_atInstant(tpoint[], TIMESTAMP)
--- RETURNS : tpoint[], TIMESTAMP -> tpoint
--- CREATED BY YOO KI HYUN
-
--- START TJ_atInstant:
-
-DROP FUNCTION IF EXISTS TJ_atInstant(tpoint[], TIMESTAMP);
 
 CREATE OR REPLACE FUNCTION TJ_atInstant(tpoint[], TIMESTAMP) RETURNS tpoint AS
 $$
@@ -285,20 +208,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_atInstant:
-------------------------------------------------------------------------------------------
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_distance(geometry, geometry)
--- RETURNS : geometry, geometry -> real
--- CREATED BY YOO KI HYUN
-
--- START TJ_distance:
-
-DROP FUNCTION IF EXISTS TJ_distance(geometry, geometry);
 
 CREATE OR REPLACE FUNCTION TJ_distance(geometry, geometry) RETURNS real AS
 $$
@@ -315,20 +224,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_distance:
-------------------------------------------------------------------------------------------
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_distance(tpoint[], tpoint[])
--- RETURNS : tpoint[], tpoint[] -> real[]
--- CREATED BY YOO KI HYUN
-
--- START TJ_distance:
-
-DROP FUNCTION IF EXISTS TJ_distance(tpoint[], tpoint[]);
 
 CREATE OR REPLACE FUNCTION TJ_distance(tpoint[], tpoint[]) RETURNS real[] AS
 $$
@@ -362,20 +257,7 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_distance:
-------------------------------------------------------------------------------------------
 
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_initial(tpoint[])
--- RETURNS : tpoint[] -> tpoint
--- CREATED BY YOO KI HYUN
-
--- START TJ_initial:
-
-DROP FUNCTION IF EXISTS TJ_initial(tpoint[]);
 
 CREATE OR REPLACE FUNCTION TJ_initial(tpoint[]) RETURNS tpoint AS
 $$
@@ -391,20 +273,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_initial:
-------------------------------------------------------------------------------------------
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_inside(geometry, geometry)
--- RETURNS : geometry, geometry -> boolean
--- CREATED BY YOO KI HYUN
-
--- START TJ_inside:
-
-DROP FUNCTION IF EXISTS TJ_inside(geometry, geometry);
 
 CREATE OR REPLACE FUNCTION TJ_inside(geometry, geometry) RETURNS boolean AS
 $$
@@ -421,20 +289,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_inside:
-------------------------------------------------------------------------------------------
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_atPeriods(tpoint[], periods)
--- RETURNS : tpoint[], periods -> tpoint[]
--- CREATED BY YOO KI HYUN
-
--- START TJ_atPeriods:
-
-DROP FUNCTION IF EXISTS TJ_atPeriods(tpoint[], periods);
 
 CREATE OR REPLACE FUNCTION TJ_atPeriods(tpoint[], periods) RETURNS tpoint[] AS
 $$
@@ -469,20 +323,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_atPeriods:
-------------------------------------------------------------------------------------------
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_at(tpoint[], geometry)
--- RETURNS : tpoint[], geometry -> tpoint[]
--- CREATED BY YOO KI HYUN
-
--- START TJ_at:
-
-DROP FUNCTION IF EXISTS TJ_at(tpoint[], geometry);
 
 CREATE OR REPLACE FUNCTION TJ_at(tpoint[], geometry) RETURNS tpoint[] AS
 $$
@@ -506,21 +346,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_at:
-------------------------------------------------------------------------------------------
-
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : TJ_Passes(tpoint[], geometry)
--- RETURNS : tpoint[], geometry -> boolean
--- CREATED BY YOO KI HYUN
-
--- START TJ_Passes:
-
--- DROP FUNCTION TJ_Passes(tpoint[], geometry);
 
 CREATE OR REPLACE FUNCTION TJ_Passes(tpoint[], geometry) RETURNS boolean AS
 $$
@@ -543,20 +368,6 @@ END
 $$
 LANGUAGE 'plpgsql';
 
--- END TJ_Passes:
-------------------------------------------------------------------------------------------
-
-
-
--- FUNCTION DEFINITION
--- DESCRIPTION : 
--- NAME : _TJ_Passes(geometry, geometry, tpoint[])
--- RETURNS : geometry, geometry, tpoint[] -> boolean
--- CREATED BY YOO KI HYUN
-
--- START _TJ_Passes:
-
--- DROP FUNCTION _TJ_Passes(geometry, geometry, tpoint[]);
 
 CREATE OR REPLACE FUNCTION _TJ_Passes(geom1 geometry, geom2 geometry, tpoint_arr tpoint[])
   RETURNS boolean AS
@@ -564,12 +375,526 @@ CREATE OR REPLACE FUNCTION _TJ_Passes(geom1 geometry, geom2 geometry, tpoint_arr
   LANGUAGE sql IMMUTABLE
   COST 100;
   
--- END _TJ_Passes:
-------------------------------------------------------------------------------------------
+  
+CREATE OR REPLACE FUNCTION TP_BEGIN(periods) RETURNS TIMESTAMP AS 
+$$
+DECLARE
+	input_period	alias for $1;
+BEGIN
+	RETURN input_period.startTime;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_END(periods) RETURNS TIMESTAMP AS 
+$$
+DECLARE
+	input_period 	alias for $1;
+BEGIN
+	RETURN input_period.endTime;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_PERIOD(TIMESTAMP, TIMESTAMP) RETURNS periods AS 
+$$
+DECLARE
+	startTime		alias for $1;
+	endTime			alias for $2;
+	result_periods		periods;
+	
+BEGIN
+	result_periods.startTime := startTime;
+	result_periods.endTime := endTime;	
+
+	RETURN result_periods;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_PERIOD(TIMESTAMP with timezone, TIMESTAMP with timezone) RETURNS periods AS 
+$$
+DECLARE
+	startTime		alias for $1;
+	endTime			alias for $2;
+	result_periods		periods;
+	
+BEGIN
+	result_periods.startTime := startTime;
+	result_periods.endTime := endTime;	
+
+	RETURN result_periods;
+END
+$$
+LANGUAGE 'plpgsql';
 
 
 
+CREATE OR REPLACE FUNCTION TJ_Equals(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF period1.startTime = period2.startTime 
+		AND period1.endTime = period2.endTime THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
 
 
+CREATE OR REPLACE FUNCTION TJ_Before(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF period1.endTime < period2.startTime THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
 
 
+CREATE OR REPLACE FUNCTION TJ_Meets(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF period1.endTime = period2.startTime 
+		OR period2.endTime = period1.startTime THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_Overlaps(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF (period1.startTime < period2.startTime AND period2.startTime < period1.endTime) 
+		OR (period2.startTime < period1.startTime AND period1.startTime < period2.endTime) THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_During(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF (period2.startTime <= period1.startTime AND period1.endTime <= period2.endTime) 
+		OR (period1.startTime <= period2.startTime AND period2.endTime <= period1.endTime) THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_Starts(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF (period1.startTime = period2.startTime AND period1.endTime < period2.endTime) 
+		OR (period1.startTime = period2.startTime AND period2.endTime < period1.endTime) THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_Finishes(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF (period1.startTime < period2.startTime AND period1.endTime = period2.endTime) 
+		OR (period2.startTime < period1.startTime AND period1.endTime = period2.endTime) THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_Intersects(periods, periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	period2		alias for $2;
+	
+BEGIN
+	IF TP_Meets(period1, period2) OR TP_Overlaps(period1, period2)
+		OR TP_During(period1, period2) OR TP_Starts(period1, period2) 
+		OR TP_Finishes(period1, period2) THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_Isnull(periods) RETURNS boolean AS
+$$
+DECLARE
+	period1		alias for $1;
+	
+BEGIN
+	IF period1.startTime = NULL OR period1.endTime = NULL THEN
+
+		RETURN true;
+	END IF;
+	
+	RETURN false;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_PERIODS(tpoint[]) RETURNS periods AS
+$$
+DECLARE
+	tpoints			alias for $1;
+	start_time			timestamp;
+	end_time			timestamp;
+	sql					text;
+    array_size			integer;
+    result_periods		periods;
+
+BEGIN
+		
+	
+	sql := 'select array_upper($1, 1)';
+	execute sql into array_size using tpoints;
+	if(tpoints IS NOT NULL) then
+		start_time := tpoints[1].ts;
+		end_time := tpoints[array_size].ts;
+	
+		result_periods.startTime := start_time;
+		result_periods.endTime := end_time;
+        return result_periods;
+    else
+    	return NULL;
+	end if;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_PERIODS(tpoint[]) RETURNS periods AS
+$$
+DECLARE
+	tpoints			alias for $1;
+	start_time			timestamp;
+	end_time			timestamp;
+	sql					text;
+    array_size			integer;
+    result_periods		periods;
+
+BEGIN
+	if(tpoints IS NOT NULL) then
+		start_time := tpoints[1].ts;
+		end_time := tpoints[array_size].ts;
+	
+		result_periods.startTime := start_time;
+		result_periods.endTime := end_time;
+        return result_periods;
+    else
+    	return NULL;
+	end if;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_OVERLAP(tpoint[], periods) RETURNS boolean AS
+$BODY$
+DECLARE
+	input_tpoints		alias for $1;
+	input_periods		alias for $2;
+	tpoints_periods		periods;
+
+    tpoints_starttime	timestamp;
+    tpoints_endtime		timestamp;
+    sql					text;
+	    
+	return_value		boolean;
+    
+BEGIN
+	if(input_tpoints is not null) then
+		sql := 'select tp_begin(TP_PERIODS($1))';
+		execute sql into tpoints_starttime using input_tpoints;
+        
+        sql := 'select tp_end(TP_PERIODS($1))';
+		execute sql into tpoints_endtime using input_tpoints;
+		
+        tpoints_periods.startTime := tpoints_starttime;
+        tpoints_periods.endTime := tpoints_endtime;
+        
+		sql := 'select TP_OVERLAPS($1, $2)';
+		execute sql into return_value using tpoints_periods, input_periods;
+		return return_value;
+	else 
+    	return false;
+	end if;	
+END
+$BODY$
+LANGUAGE 'plpgsql' VOLATILE
+COST 100;
+
+
+CREATE OR REPLACE FUNCTION TJ_ENTER(trajectory, box2d) RETURNS BOOLEAN AS
+$$
+DECLARE
+	f_trajectory			alias for $1;
+	input_box2d				alias for $2;
+    result_value			boolean;
+    input_geometry			geometry;
+    sql						text;
+
+BEGIN
+    sql := 'select geometry($1)';
+    execute sql into input_geometry using input_box2d;
+    
+    sql := 'select TT_ENTER($1, $2)';
+    execute sql into result_value using f_trajectory, input_geometry;
+    
+    return result_value;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_ENTER(trajectory, geometry) RETURNS BOOLEAN AS
+$$
+DECLARE
+	f_trajectory			alias for $1;
+	input_geometry				alias for $2;
+	f_trajectory_segtable_name	char(200);
+	min_segid			integer;
+	max_segid			integer;
+	maxseg_size			integer;
+	tpseg_arr				tpoint[];
+	first_tpoint			tpoint;
+	last_tpoint			tpoint;
+	data				record;
+	sql					text;
+	intersects_start	boolean;
+	intersects_end	boolean;
+	traj_prefix			char(50);
+	
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+	
+	sql := 'select min(segid) from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid;
+	execute sql into min_segid;
+
+	sql := 'select max(segid) from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid;
+	execute sql into max_segid;
+
+	execute format('select mpcount from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = $1 and segid = $2')
+	into maxseg_size using f_trajectory.moid, max_segid;
+
+	execute format('select tpseg from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = $1 and segid = $2')
+	into tpseg_arr using f_trajectory.moid, min_segid;
+    first_tpoint.pnt := tpseg_arr[1].pnt;
+    first_tpoint.ts := tpseg_arr[1].ts;
+	
+	execute format('select tpseg from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = $1 and segid = $2')
+	into tpseg_arr using f_trajectory.moid, max_segid;
+	last_tpoint.pnt := tpseg_arr[maxseg_size].pnt;
+    last_tpoint.ts := tpseg_arr[maxseg_size].ts;
+
+	sql := 'select st_intersects($1, $2)';
+	execute sql into intersects_start using first_tpoint.pnt, input_geometry;
+	
+	sql := 'select st_intersects($1, $2 )';
+	execute sql into intersects_end using last_tpoint.pnt, input_geometry;
+
+	if intersects_start then
+    	if intersects_end then 
+			return false;
+        else 
+        	return true;
+		end if;
+	else
+    	if intersects_start then
+        	return true;
+		else 
+        	return false;
+		end if;
+	end if;
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_ENTER(trajectory, geometry, periods) RETURNS BOOLEAN AS
+$$
+DECLARE
+	f_trajectory			alias for $1;
+	input_geometry				alias for $2;
+    input_periods			alias for $3;
+	f_trajectory_segtable_name	char(200);
+	sliced_tpseg			tpoint[];
+	sliced_linestring		geometry;
+	trajectory_size		integer;
+	first_tpoint			tpoint;
+	last_tpoint			tpoint;
+	data				record;
+	sql					text;
+	intersects_start	boolean;
+	intersects_end	boolean;
+	traj_prefix			char(50);
+	
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+	
+	sql := 'select slice($1, $2, $3)';
+	execute sql into sliced_tpseg using f_trajectory, input_periods.startTime, input_periods.endTime;
+	
+	if sliced_tpseg is not null then
+		sql := 'select array_upper($1, 1)';
+		execute sql into trajectory_size using sliced_tpseg;
+
+		first_tpoint.pnt := sliced_tpseg[1].pnt;
+		first_tpoint.ts := sliced_tpseg[1].ts;
+		
+		last_tpoint.pnt := sliced_tpseg[trajectory_size].pnt;
+		last_tpoint.ts := sliced_tpseg[trajectory_size].ts;
+		
+		sql := 'select st_intersects($1, $2)';
+		execute sql into intersects_start using first_tpoint.pnt, input_geometry;
+		
+		sql := 'select st_intersects($1, $2 )';
+		execute sql into intersects_end using last_tpoint.pnt, input_geometry;
+
+		if intersects_start then
+			return false;
+		else 
+			if intersects_end then
+				return true;
+			else
+				return false;
+			end if;
+		end if;
+		
+	else
+		return false;
+	end if;
+END
+$$
+LANGUAGE 'plpgsql';
+	
+	
+CREATE OR REPLACE FUNCTION TJ_LEAVE(trajectory, geometry, periods) RETURNS BOOLEAN AS
+$$
+DECLARE
+	f_trajectory			alias for $1;
+	input_geometry				alias for $2;
+    input_periods			alias for $3;
+	f_trajectory_segtable_name	char(200);
+	sliced_tpseg			tpoint[];
+	sliced_linestring		geometry;
+	trajectory_size		integer;
+	first_tpoint			tpoint;
+	last_tpoint			tpoint;
+	data				record;
+	sql					text;
+	intersects_start	boolean;
+	intersects_end	boolean;
+	traj_prefix			char(50);
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+	
+	sql := 'select slice($1, $2, $3)';
+	execute sql into sliced_tpseg using f_trajectory, input_periods.startTime, input_periods.endTime;
+	if sliced_tpseg is not null then
+		sql := 'select array_upper($1, 1)';
+		execute sql into trajectory_size using sliced_tpseg;
+
+		first_tpoint.pnt := sliced_tpseg[1].pnt;
+		first_tpoint.ts := sliced_tpseg[1].ts;
+		
+		last_tpoint.pnt := sliced_tpseg[trajectory_size].pnt;
+		last_tpoint.ts := sliced_tpseg[trajectory_size].ts;
+		
+		sql := 'select st_intersects($1, $2)';
+		execute sql into intersects_start using first_tpoint.pnt, input_geometry;
+		
+		sql := 'select st_intersects($1, $2 )';
+		execute sql into intersects_end using last_tpoint.pnt, input_geometry;
+
+		if intersects_start then
+			if intersects_end then
+            	return false;
+			else
+            	return true;
+			end if;
+		else
+        	return false;
+		end if;
+	else
+    	return false;
+	end if;
+	
+END
+$$
+LANGUAGE 'plpgsql';
