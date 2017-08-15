@@ -1425,8 +1425,6 @@ BEGIN
 			execute sql into min_double using temp_tpseg[1].pnt, input_geometry;
 			min_mdouble.distance := min_double;
 			min_mdouble.ts := temp_tpseg[1].ts;
-            RAISE NOTICE 'min_mdouble.ts 1 : %', temp_tpseg[1].ts;
-            RAISE NOTICE 'min_mdouble.ts 4 : %', min_mdouble.ts;
 			i := i+1;
 		end if;
 		WHILE( i <= data.mpcount ) LOOP
@@ -1434,16 +1432,14 @@ BEGIN
 			execute sql into temp_mindouble using temp_tpseg[i].pnt, input_geometry;
 			if min_double > temp_mindouble then
 				min_double := temp_mindouble;
-                RAISE NOTICE 'min_mdouble.ts 2 : %', temp_tpseg[i].ts;
 				min_time := temp_tpseg[i].ts;
-                RAISE NOTICE 'min_mdouble.ts 3 : %', temp_tpseg[i].ts;
 			end if;
 			i := i+1;
 		END LOOP;
 	END LOOP;
 	
 	min_mdouble.distance := min_double;
-    if min_time is not null then 
+    	if min_time is not null then 
 		min_mdouble.ts := min_time;
 	end if; 
 	
