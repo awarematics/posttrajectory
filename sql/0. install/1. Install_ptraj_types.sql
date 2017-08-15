@@ -127,3 +127,17 @@ CREATE TYPE periods as(
 -- END TYPE periods:
 ------------------------------------------------------------------------------------------
 
+
+-- TYPE DEFINITION
+-- DESCRIPTION : 
+-- NAME : mdouble
+-- CREATED BY Pyoung Woo Yang
+
+CREATE TYPE MDouble as(
+	distance	double precision,
+	time		timestamp
+);
+
+-- END TYPE periods:
+------------------------------------------------------------------------------------------
+
