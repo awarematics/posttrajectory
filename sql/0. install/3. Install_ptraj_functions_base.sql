@@ -32,7 +32,8 @@ create or replace function getTpointArrayInfo(tpoint[]) returns setof text;
 CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[], OUT tpoint text, OUT ptime_timestamp timestamp without time zone) RETURNS SETOF record;
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry;
-
+CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble 
+CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble 
 */
 
 
@@ -1389,3 +1390,121 @@ $$
   COST 100;
 
 
+CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble AS
+$$
+DECLARE
+	f_trajectory				alias for $1;
+	input_geometry			alias for $2;
+	f_trajectory_segtable_name		char(200);
+	before_segid				integer;
+	next_segid				integer;
+	temp_tpseg				tpoint[];
+	max_mdouble			mdouble;
+	max_double				double precision;
+	max_time					timestamp;
+	temp_mindouble		double precision;
+	sql						text;
+	traj_prefix				char(50);
+	data						record;
+	i						integer;
+	
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid || 
+		' order by start_time';
+	
+	max_double := 0;
+	FOR data IN EXECUTE sql LOOP
+		temp_tpseg := data.tpseg;
+		i := 1;
+		if max_double = 0 then
+			sql := 'select st_distance($1, $2)';
+			execute sql into max_double using temp_tpseg[1].pnt, input_geometry;
+			max_mdouble.distance := max_double;
+			max_mdouble.ts := temp_tpseg[1].ts;
+			i := i+1;
+		end if;
+		WHILE( i <= data.mpcount ) LOOP
+			sql := 'select st_distance($1, $2)';
+			execute sql into temp_mindouble using temp_tpseg[i].pnt, input_geometry;
+			if max_double > temp_mindouble then
+				max_double := temp_mindouble;
+				max_time := temp_tpseg[i].ts;
+			end if;
+			i := i+1;
+		END LOOP;
+	END LOOP;
+	
+	max_mdouble.distance := max_double;
+    if max_time is not null then 
+		max_mdouble.ts := max_time;
+	end if; 
+	
+	return min_mdouble;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+	
+
+CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble AS
+$$
+DECLARE
+	f_trajectory				alias for $1;
+	input_geometry			alias for $2;
+	f_trajectory_segtable_name		char(200);
+	before_segid				integer;
+	next_segid				integer;
+	temp_tpseg				tpoint[];
+	max_mdouble			mdouble;
+	max_double				double precision;
+	max_time					timestamp;
+	temp_maxdouble		double precision;
+	sql						text;
+	traj_prefix				char(50);
+	data						record;
+	i						integer;
+	
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid || 
+		' order by start_time';
+	
+	max_double := 0;
+	FOR data IN EXECUTE sql LOOP
+		temp_tpseg := data.tpseg;
+		i := 1;
+		if max_double = 0 then
+			sql := 'select st_distance($1, $2)';
+			execute sql into max_double using temp_tpseg[1].pnt, input_geometry;
+			max_mdouble.distance := max_double;
+			max_mdouble.ts := temp_tpseg[1].ts;
+			i := i+1;
+		end if;
+		WHILE( i <= data.mpcount ) LOOP
+			sql := 'select st_distance($1, $2)';
+			execute sql into temp_maxdouble using temp_tpseg[i].pnt, input_geometry;
+			if max_double < temp_maxdouble then
+				max_double := temp_maxdouble;
+				max_time := temp_tpseg[i].ts;
+			end if;
+			i := i+1;
+		END LOOP;
+	END LOOP;
+	
+	max_mdouble.distance := max_double;
+    if max_time is not null then 
+		max_mdouble.ts := max_time;
+	end if; 
+	
+	return max_mdouble;
+	
+END
+$$
+LANGUAGE 'plpgsql';
