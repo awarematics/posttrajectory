@@ -32,7 +32,7 @@ create or replace function getTpointArrayInfo(tpoint[]) returns setof text;
 CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[], OUT tpoint text, OUT ptime_timestamp timestamp without time zone) RETURNS SETOF record;
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry;
-CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble 
+CREATE OR REPLACE FUNCTION TJ_MINDISTANCE(trajectory, geometry) RETURNS mdouble 
 CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble 
 */
 
@@ -1390,7 +1390,7 @@ $$
   COST 100;
 
 
-CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble AS
+CREATE OR REPLACE FUNCTION TJ_MINDISTANCE(trajectory, geometry) RETURNS mdouble AS
 $$
 DECLARE
 	f_trajectory				alias for $1;
@@ -1399,9 +1399,9 @@ DECLARE
 	before_segid				integer;
 	next_segid				integer;
 	temp_tpseg				tpoint[];
-	max_mdouble			mdouble;
-	max_double				double precision;
-	max_time					timestamp;
+	min_mdouble			mdouble;
+	min_double				double precision;
+	min_time					timestamp;
 	temp_mindouble		double precision;
 	sql						text;
 	traj_prefix				char(50);
@@ -1416,31 +1416,35 @@ BEGIN
 	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid || 
 		' order by start_time';
 	
-	max_double := 0;
+	min_double := 0;
 	FOR data IN EXECUTE sql LOOP
 		temp_tpseg := data.tpseg;
 		i := 1;
-		if max_double = 0 then
+		if min_double = 0 then
 			sql := 'select st_distance($1, $2)';
-			execute sql into max_double using temp_tpseg[1].pnt, input_geometry;
-			max_mdouble.distance := max_double;
-			max_mdouble.ts := temp_tpseg[1].ts;
+			execute sql into min_double using temp_tpseg[1].pnt, input_geometry;
+			min_mdouble.distance := min_double;
+			min_mdouble.ts := temp_tpseg[1].ts;
+            RAISE NOTICE 'min_mdouble.ts 1 : %', temp_tpseg[1].ts;
+            RAISE NOTICE 'min_mdouble.ts 4 : %', min_mdouble.ts;
 			i := i+1;
 		end if;
 		WHILE( i <= data.mpcount ) LOOP
 			sql := 'select st_distance($1, $2)';
 			execute sql into temp_mindouble using temp_tpseg[i].pnt, input_geometry;
-			if max_double > temp_mindouble then
-				max_double := temp_mindouble;
-				max_time := temp_tpseg[i].ts;
+			if min_double > temp_mindouble then
+				min_double := temp_mindouble;
+                RAISE NOTICE 'min_mdouble.ts 2 : %', temp_tpseg[i].ts;
+				min_time := temp_tpseg[i].ts;
+                RAISE NOTICE 'min_mdouble.ts 3 : %', temp_tpseg[i].ts;
 			end if;
 			i := i+1;
 		END LOOP;
 	END LOOP;
 	
-	max_mdouble.distance := max_double;
-    if max_time is not null then 
-		max_mdouble.ts := max_time;
+	min_mdouble.distance := min_double;
+    if min_time is not null then 
+		min_mdouble.ts := min_time;
 	end if; 
 	
 	return min_mdouble;
