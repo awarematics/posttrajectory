@@ -135,7 +135,7 @@ CREATE TYPE periods as(
 
 CREATE TYPE MDouble as(
 	distance	double precision,
-	time		timestamp
+	ts		timestamp
 );
 
 -- END TYPE periods:
