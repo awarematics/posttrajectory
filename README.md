@@ -157,26 +157,26 @@ WHERE tj_enter( traj, GeomFromText('POLYGON(15000 18000, 30000 30000, 15000 1800
 
 <pre>
 SELECT taxi_id, taxi_numer, 
-       m_distance(traj, GeomFromText('Point( 50 50 )' ),
-       m_mindistance(traj, GeomFromText('Point( 50 50 )' ), 
-       m_maxdistance(traj, GeomFromText('Point( 50 50 )' )
+       tj_distance(traj, geometry('Point( 50 50 )' ),
+       tj_mindistance(traj, geometry('Point( 50 50 )' ), 
+       tj_maxdistance(traj, geometry('Point( 50 50 )' )
 FROM taxi;
 
-SELECT taxi_id, bus_id, distance( t.traj, b.traj)
+SELECT taxi_id, bus_id, tj_distance( t.traj, b.traj)
 FROM taxi t, bus b;
 
 SELECT taxi_id, taxi_number 
 FROM taxi
-WHERE m_mindistance(traj,  GeomFromText('Point( 50 50 )') < 20;
+WHERE tj_mindistance(traj,  geometry('Point( 50 50 )') < 20;
 
-SELECT taxi_id, taxi_number, slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
+SELECT taxi_id, taxi_number, tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 FROM taxi 
-WHERE m_mindistance( slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), 
-                     GeomFromText('Point( 50 50 )') < 50;
+WHERE tj_mindistance( tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), 
+                     geometry('Point( 50 50 )') < 50;
 
-SELECT m_distance(b.traj, t.traj) 
+SELECT tj_distance(b.traj, t.traj) 
 FROM taxi t, bus b 
-WHERE m_mindistance(t.traj, b.traj,  TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00') < 100m;
+WHERE tj_mindistance(t.traj, b.traj,  TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00') < 100m;
 
 </pre>
 
