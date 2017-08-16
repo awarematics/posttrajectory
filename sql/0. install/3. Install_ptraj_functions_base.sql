@@ -34,6 +34,11 @@ CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoi
 CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry;
 CREATE OR REPLACE FUNCTION TJ_MINDISTANCE(trajectory, geometry) RETURNS mdouble 
 CREATE OR REPLACE FUNCTION TJ_MAXDISTANCE(trajectory, geometry) RETURNS mdouble 
+CREATE OR REPLACE FUNCTION TJ_CALCULATETPOINT(tpoint, tpoint, tpoint) RETURN tpoint
+CREATE OR REPLACE FUNCTION TJ_DISTANCE(trajectory, geometry) RETURNS mdouble[]
+CREATE OR REPLACE FUNCTION tj_getDistance(mdouble) RETURNS double precision 
+CREATE OR REPLACE FUNCTION TJ_PERIOD(trajectory) RETURNS periods
+CREATE OR REPLACE FUNCTION TJ_COMMONPERIOD(periods, periods) RETURNS periods
 */
 
 
@@ -1504,6 +1509,243 @@ BEGIN
 	end if; 
 	
 	return max_mdouble;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_CALCULATETPOINT(tpoint, tpoint, tpoint) RETURN tpoint AS
+$$
+DECLARE
+	tpoint1					alias for $1;
+	tpoint2					alias for $2;
+	tpoint3					alias for $3;
+	
+    time_period				double precision;
+    p1time					double precision;
+    p2time					double precision;
+    d_input_time			double precision;
+    
+    x_distance				double precision;
+    y_distance				double precision;
+    time_per_distance_x		double precision;
+    time_per_distance_y		double precision;
+	x1						double precision;
+    x2						double precision;
+    y1						double precision;
+    y2						double precision;
+    new_x					double precision;
+    new_y					double precision;
+       
+	sql						text;
+    
+    calculated_tpoint		tpoint;
+BEGIN
+	
+    sql := 'select extract(epoch from $1)';
+    execute sql into p1time using tpoint1.ts;
+    raise notice 'p1time : %', p1time;
+    
+    sql := 'select extract(epoch from $1)';
+    execute sql into p2time using tpoint2.ts;
+    raise notice 'p2time : %', p2time;
+    
+    time_period := p2time - p1time;
+    raise notice 'time_period : %', time_period;
+    
+    sql := 'select st_x($1)';
+    execute sql into x1 using tpoint1.pnt;
+    raise notice 'point x1 : %', x1;
+    
+    sql := 'select st_y($1)';
+    execute sql into y1 using tpoint1.pnt;
+    raise notice 'point y1 : %', y1;
+    
+    sql := 'select st_x($1)';
+    execute sql into x2 using tpoint2.pnt;
+    raise notice 'point x2 : %', x2;
+    sql := 'select st_y($1)';
+    execute sql into y2 using tpoint2.pnt;
+    raise notice 'point x2 : %', y2;
+    
+    x_distance := x2 - x1;
+    raise notice 'x_distance : %', x_distance;
+    y_distance := y2 - y1;
+    raise notice 'y_distance : %', y_distance;
+    
+    time_per_distance_x := x_distance / time_period;
+    raise notice 'time_per_distance_x : %', time_per_distance_x;
+    
+    time_per_distance_y := y_distance / time_period;
+    raise notice 'time_per_distance_y : %', time_per_distance_y;
+    
+	sql := 'select extract(epoch from $1)';
+    execute sql into d_input_time using tpoint3.ts;
+    raise notice 'd_input_time : %', d_input_time;
+	
+	
+    if x2 - x1 > 0 then
+    	new_x := time_per_distance_x * (p2time - d_input_time ) + ( x2 - x1 );
+        raise notice 'p2time - d_input_time : %', p2time - d_input_time;
+        raise notice 'new_x : %', new_x;
+        
+    else
+    	new_x := x1;
+    end if;
+    
+    if y2 - y1 > 0 then
+		new_y := time_per_distance_y * (p2time - d_input_time ) + (y2 - y1);
+	else
+    	new_y = y1;
+	end if;
+    
+    sql := 'select st_makepoint($1, $2)';
+    execute sql into calculated_tpoint.pnt using new_x, new_y;
+    
+    calculated_tpoint.ts := tpoint3.ts;
+    
+    return calculated_tpoint;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_DISTANCE(trajectory, geometry) RETURNS mdouble[] AS
+$$
+DECLARE
+	f_trajectory					alias for $1;
+	input_geometry					alias for $2;
+	f_trajectory_segtable_name		char(200);
+	temp_tpseg						tpoint[];
+	temp_distance					double precision;
+	sql								text;
+	traj_prefix						char(50);
+	data							record;
+	i								integer;
+	result_value					mdouble[];
+    temp_mdouble					mdouble;
+	
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || f_trajectory.segtableoid;
+
+	sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || f_trajectory.moid || 
+		' order by start_time';
+	
+	FOR data IN EXECUTE sql LOOP
+		temp_tpseg := data.tpseg;
+		i := 1;
+		WHILE( i <= data.mpcount ) LOOP
+			sql := 'select st_distance($1, $2)';
+			execute sql into temp_distance using temp_tpseg[i].pnt, input_geometry;
+            temp_mdouble.distance := temp_distance;
+            temp_mdouble.ts := temp_tpseg[i].ts;
+			
+			sql := 'select array_append($1, $2)';
+			execute sql into result_value using result_value, temp_mdouble;
+			raise notice '%', sql;
+			i := i+1;
+		END LOOP;
+	END LOOP;
+	
+	return result_value;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+select taxi_id, tj_distance(traj, geometry('point( 345 275 )') )
+from taxi;
+
+
+CREATE OR REPLACE FUNCTION tj_getDistance(mdouble) RETURNS double precision AS
+$$
+DECLARE
+	input_mdouble			alias for $1;
+
+BEGIN
+	
+    return input_mdouble.distance;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+
+CREATE OR REPLACE FUNCTION TJ_PERIOD(trajectory) RETURNS periods AS
+$$
+DECLARE
+	c_trajectory1					alias for $1;
+    f_trajectory_segtable_name		char(200);
+    traj_prefix						char(50);
+    data							record;
+	sql						text;
+    new_period				periods;
+    start_time				timestamp;
+    end_time				timestamp;
+
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	f_trajectory_segtable_name := traj_prefix || c_trajectory1.segtableoid;
+    
+    sql := 'select * from ' || quote_ident(f_trajectory_segtable_name) || ' where mpid = ' || c_trajectory1.moid || 
+		' order by start_time';
+    start_time := null;
+    end_time := null;
+    FOR data IN EXECUTE sql LOOP
+		if start_time is null then
+        	start_time := data.start_time;
+		else
+        	if start_time > data.start_time then
+            	start_time := data.start_time;
+			end if;
+		end if;
+        
+        if end_time is null then
+        	end_time := data.end_time;
+		else
+        	if end_time < data.end_time then
+            	end_time := data.end_time;
+			end if;
+		end if;
+	END LOOP;
+    
+    new_period.startTime := start_time;
+    new_period.endTime := end_time;
+	
+    return new_period;
+	
+END
+$$
+LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION TJ_COMMONPERIOD(periods, periods) RETURNS periods AS
+$$
+DECLARE
+	periods1					alias for $1;
+    periods2					alias for $2;
+    new_period					periods;
+
+BEGIN
+	IF periods1.startTime < periods2.startTime THEN
+    	new_period.startTime := periods2.startTime;
+	ELSE
+    	new_period.startTime := periods1.startTime;
+	END IF;
+    
+    IF periods1.endTime < periods2.endTime THEN
+    	new_period.endTime := periods1.endTime;
+	ELSE
+    	new_period.endTime := periods2.endTime;
+	END IF;
+
+	return new_period;
 	
 END
 $$
