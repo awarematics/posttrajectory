@@ -167,12 +167,12 @@ FROM taxi t, bus b;
 
 SELECT taxi_id, taxi_number 
 FROM taxi
-WHERE tj_mindistance(traj,  geometry('Point( 50 50 )') < 20;
+WHERE tj_getDistance( tj_mindistance(traj,  geometry('Point( 50 50 )') ) < 20;
 
 SELECT taxi_id, taxi_number, tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00')
 FROM taxi 
-WHERE tj_mindistance( tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), 
-                     geometry('Point( 50 50 )') < 50;
+WHERE tj_getDistance( tj_mindistance( tj_slice( traj, TIMESTAMP '2011-02-20 17:13:00', TIMESTAMP '2011-02-20 17:26:00'), 
+                     geometry('Point( 50 50 )') ) < 50;
 
 SELECT tj_distance(b.traj, t.traj) 
 FROM taxi t, bus b 
