@@ -4,22 +4,22 @@
 CREATE OR REPLACE FUNCTION getBox2D(tpoint[]) RETURNS geometry;
 CREATE OR REPLACE FUNCTION delete_mpoint_seg() RETURNS trigger;
 CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger;
-CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
+CREATE OR REPLACE FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, 
 	integer, character varying, integer) RETURNS text;
-CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
+CREATE OR REPLACE FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, 
 	integer, character varying, integer, integer) RETURNS text;
 CREATE OR REPLACE FUNCTION tpoint(geometry, timestamp) RETURNS tpoint;
-CREATE OR REPLACE FUNCTION append(trajectory, geometry, timestamp) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION append(trajectory, tpoint[]) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION append(trajectory, tpoint) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, integer) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, timestamp) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION modify(trajectory, tpoint) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION modify(trajectory, tpoint[]) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION modify(trajectory, timestamp, timestamp, tpoint[]) RETURNS trajectory;
-CREATE OR REPLACE FUNCTION slice(trajectory, timestamp, timestamp) RETURNS tpoint[];
-CREATE OR REPLACE FUNCTION slice(trajectory, double, double, double, double) RETURNS tpoint[];
-CREATE OR REPLACE FUNCTION slice(trajectory, geometry) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION tj_append(trajectory, geometry, timestamp) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint[]) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_remove(trajectory, timestamp, integer) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_remove(trajectory, timestamp, timestamp) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_modify(trajectory, tpoint) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_modify(trajectory, tpoint[]) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_modify(trajectory, timestamp, timestamp, tpoint[]) RETURNS trajectory;
+CREATE OR REPLACE FUNCTION tj_slice(trajectory, timestamp, timestamp) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION tj_slice(trajectory, double, double, double, double) RETURNS tpoint[];
+CREATE OR REPLACE FUNCTION tj_slice(trajectory, geometry) RETURNS tpoint[];
 --CREATE OR REPLACE FUNCTION getrectintrajectory_record(double precision, double precision, double precision, double precision, trajectory) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[];
@@ -155,7 +155,7 @@ $BODY$
   
   
   
-CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
+CREATE OR REPLACE FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, 
 						integer, character varying, integer)
   RETURNS text AS
 $BODY$
@@ -184,7 +184,7 @@ COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, ch
 					'args: schema_name, table_name, column_name, srid, type, dimentrion';
 
 
-CREATE OR REPLACE FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, 
+CREATE OR REPLACE FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, 
 						integer, character varying, integer, integer)
   RETURNS text AS
 $BODY$
@@ -394,7 +394,7 @@ $$
   
 
 
-CREATE OR REPLACE FUNCTION append(trajectory, geometry, timestamp) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION tj_append(trajectory, geometry, timestamp) RETURNS trajectory AS
 $$
 DECLARE
 	inpuut_trajectory	alias for $1;
@@ -408,7 +408,7 @@ $$
 LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
-CREATE OR REPLACE FUNCTION append(trajectory, tpoint[]) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint[]) RETURNS trajectory AS
 $$
 DECLARE
 	c_trajectory	alias for $1;
@@ -439,7 +439,7 @@ LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
 
-CREATE OR REPLACE FUNCTION append(trajectory, tpoint) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint) RETURNS trajectory AS
 $BODY$
 DECLARE
 	f_trajectroy			alias for $1;
@@ -546,7 +546,7 @@ COST 100;
 ALTER FUNCTION append(trajectory, tpoint) OWNER TO postgres;
 
 
-CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, integer) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION tj_remove(trajectory, timestamp, integer) RETURNS trajectory AS
 $$
 DECLARE
 	c_trajectory	alias for $1;
@@ -568,7 +568,7 @@ $$
 LANGUAGE 'plpgsql' ;
 
 
-CREATE OR REPLACE FUNCTION remove(trajectory, timestamp, timestamp) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION tj_remove(trajectory, timestamp, timestamp) RETURNS trajectory AS
 $$
 DECLARE
 	c_trajectory 			alias for $1;
@@ -1378,7 +1378,7 @@ LANGUAGE 'plpgsql';
 
 
 
-CREATE OR REPLACE FUNCTION periods(timestamp, timestamp) RETURNS periods AS
+CREATE OR REPLACE FUNCTION tj_periods(timestamp, timestamp) RETURNS periods AS
 $$
 DECLARE
 	start_time	alias for $1;
