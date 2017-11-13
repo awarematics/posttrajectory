@@ -394,21 +394,21 @@ $$
   
 
 
-CREATE OR REPLACE FUNCTION tj_append(trajectory, geometry, timestamp) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION TJ_append(trajectory, geometry, timestamp) RETURNS trajectory AS
 $$
 DECLARE
 	inpuut_trajectory	alias for $1;
 	inpuut_geometry		alias for $2;
 	input_time		alias for $3;
 BEGIN
-	execute 'select append( $1, tpoint( $2, $3 ) )'
+	execute 'select TJ_append( $1, tpoint( $2, $3 ) )'
 	using inpuut_trajectory, inpuut_geometry, input_time;
 END
 $$
 LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
-CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint[]) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION TJ_append(trajectory, tpoint[]) RETURNS trajectory AS
 $$
 DECLARE
 	c_trajectory	alias for $1;
@@ -427,7 +427,7 @@ BEGIN
 	i := 1;
 
 	WHILE( i <= array_size ) LOOP
-		execute 'select append( $1, $2[$3] )'
+		execute 'select TJ_append( $1, $2[$3] )'
 		using c_trajectory, array_tpoint, i;
 		 i := i+1;
 	END LOOP;
@@ -439,7 +439,7 @@ LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
 
-CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint) RETURNS trajectory AS
+CREATE OR REPLACE FUNCTION TJ_append(trajectory, tpoint) RETURNS trajectory AS
 $BODY$
 DECLARE
 	f_trajectroy			alias for $1;
@@ -543,7 +543,7 @@ END;
 $BODY$
 LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
-ALTER FUNCTION append(trajectory, tpoint) OWNER TO postgres;
+ALTER FUNCTION TJ_append(trajectory, tpoint) OWNER TO postgres;
 
 
 CREATE OR REPLACE FUNCTION tj_remove(trajectory, timestamp, integer) RETURNS trajectory AS
