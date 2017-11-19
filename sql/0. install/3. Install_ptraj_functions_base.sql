@@ -1750,3 +1750,75 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
+
+
+CREATE OR REPLACE FUNCTION tj_getMidPOINT(tpoint, tpoint, timestamp) RETURNS tpoint AS
+$$
+DECLARE
+	first_tpoint		alias for $1;
+	second_tpoint		alias for $2;
+	compare_time		alias for $3;
+    
+    first_time			double precision;
+    second_time			double precision;
+    base_time			double precision;
+    time_difference		double precision;
+    base_to_first_diff	double precision;
+    
+    first_point			geometry;
+    second_point		geometry;
+   
+   	first_x				float;
+    first_y				float;
+    
+    second_x			float;
+    second_y			float;
+    
+    new_point_x			float;
+    new_point_y			float;
+    
+    new_tpoint			tpoint;
+	
+    sql					text;
+BEGIN
+
+	sql := 'SELECT EXTRACT(EPOCH FROM $1)';
+    execute sql into first_time using first_tpoint.ts;
+        
+    execute sql into second_time using second_tpoint.ts;
+   
+    execute sql into base_time using compare_time;
+    
+    time_difference := second_time - first_time;
+    
+    base_to_first_diff := base_time - first_time;
+
+	first_point := first_tpoint.pnt;
+    second_point := second_tpoint.pnt;
+
+	sql := 'select st_x(st_centroid($1))';
+    execute sql into first_x using first_point;
+    
+    sql := 'select st_y(st_centroid($1))';
+    execute sql into first_y using first_point;
+    
+    sql := 'select st_x(st_centroid($1))';
+    execute sql into second_x using second_point;
+    
+    sql := 'select st_y(st_centroid($1))';
+    execute sql into second_y using second_point;
+    
+	new_point_x := first_x + ( ( second_x-first_x ) / time_difference * base_to_first_diff );
+    raise notice 'new_x %', new_point_x;
+    new_point_y := first_y + ( ( second_y-first_y ) / time_difference * base_to_first_diff );
+	raise notice 'new_y %', new_point_y;
+
+	sql := 'select st_point( $1, $2 )';
+    execute sql into new_tpoint.pnt using new_point_x, new_point_y;
+    
+    new_tpoint.ts := compare_time;
+
+	RETURN new_tpoint;
+END
+$$
+LANGUAGE 'plpgsql';
