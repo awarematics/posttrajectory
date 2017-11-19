@@ -12,7 +12,7 @@ DROP TYPE IF EXISTS tpoint;
 
 CREATE TYPE tpoint as(
 	pnt	geometry,			-- Point type
-	ts	timestamp without time zone	-- Timestamp type
+	ts	timestamp			-- Timestamp type
 );
 
 -- END TYPE tpoint:
