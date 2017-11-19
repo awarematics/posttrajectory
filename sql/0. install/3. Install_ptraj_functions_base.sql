@@ -24,12 +24,12 @@ CREATE OR REPLACE FUNCTION tj_slice(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION getPointArray(tpoint[]) RETURNS geometry[];
 CREATE OR REPLACE FUNCTION getRect_trajectory(trajectory) RETURNS setof box2d;
-CREATE OR REPLACE FUNCTION getStartTime(trajectory) RETURNS timestamp without time zone;
-CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone;
+CREATE OR REPLACE FUNCTION getStartTime(trajectory) RETURNS timestamp;
+CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp;
 CREATE OR REPLACE FUNCTION getTimeStamp(integer) RETURNS timestamp;
-CREATE OR REPLACE FUNCTION getTimestamp(integer) RETURNS timestamp without time zone;
+CREATE OR REPLACE FUNCTION getTimestamp(integer) RETURNS timestamp;
 create or replace function getTpointArrayInfo(tpoint[]) returns setof text;
-CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[], OUT tpoint text, OUT ptime_timestamp timestamp without time zone) RETURNS SETOF record;
+CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[], OUT tpoint text, OUT ptime_timestamp timestamp) RETURNS SETOF record;
 CREATE OR REPLACE FUNCTION getIntersectTpoint(trajectory, geometry) RETURNS tpoint[];
 CREATE OR REPLACE FUNCTION tpoint_to_linestring(tpoint[]) RETURNS geometry;
 CREATE OR REPLACE FUNCTION TJ_MINDISTANCE(trajectory, geometry) RETURNS mdouble 
@@ -299,8 +299,8 @@ BEGIN
 			before_segid	integer,
 			mpcount		integer,
 			rect		box2d,
-			start_time	timestamp without time zone,
-			end_time	timestamp without time zone,
+			start_time	timestamp,
+			end_time	timestamp,
 			tpseg		tpoint[]
 		)';
 
@@ -552,7 +552,7 @@ DECLARE
 	c_trajectory	alias for $1;
 	start_time	alias for $2;
 	time_interval	alias for $3;
-	end_time	TIMESTAMP without time zone;
+	end_time	TIMESTAMP;
 	text_interval	text;
 BEGIN
 	text_interval := time_interval || ' seconds';
@@ -1079,11 +1079,11 @@ $$
 LANGUAGE 'plpgsql';
 
 
--- Function: getStartTime(trajectory) RETURNS timestamp without time zone;
+-- Function: getStartTime(trajectory) RETURNS timestamp;
 
 -- DROP FUNCTION getStartTime(trajectory);
 
-CREATE OR REPLACE FUNCTION getStartTime(trajectory) RETURNS timestamp without time zone AS
+CREATE OR REPLACE FUNCTION getStartTime(trajectory) RETURNS timestamp AS
 $BODY$
 DECLARE
 	user_traj			alias for $1;
@@ -1095,7 +1095,7 @@ DECLARE
 	
 	sql			text;
 
-	start_time		TIMESTAMP without time zone;
+	start_time		TIMESTAMP;
 
 	
 BEGIN	
@@ -1116,11 +1116,11 @@ LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
 
--- Function: getEndTime(trajectory) RETURNS timestamp without time zone;
+-- Function: getEndTime(trajectory) RETURNS timestamp;
 
 -- DROP FUNCTION getEndTime(trajectory);
 
-CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp without time zone AS
+CREATE OR REPLACE FUNCTION getEndTime(trajectory) RETURNS timestamp AS
 $BODY$
 DECLARE
 	user_traj			alias for $1;
@@ -1132,7 +1132,7 @@ DECLARE
 	
 	sql			text;
 
-	end_time		TIMESTAMP without time zone;
+	end_time		TIMESTAMP;
 
 	
 BEGIN	
@@ -1163,9 +1163,9 @@ $$
 DECLARE
 	input_interval		alias for $1;
 
-	base_time		TIMESTAMP without time zone;
+	base_time		TIMESTAMP;
 
-	data_time		TIMESTAMP without time zone;
+	data_time		TIMESTAMP;
 
 	text_interval		text;
 	
@@ -1188,11 +1188,11 @@ LANGUAGE 'plpgsql' VOLATILE STRICT
 COST 100;
 
 
--- Function: getTimeStamp(integer) RETURNS timestamp without time zone;
+-- Function: getTimeStamp(integer) RETURNS timestamp;
 
 -- DROP FUNCTION getTimeStamp(integer);
 
-CREATE OR REPLACE FUNCTION getTimeStamp(integer) RETURNS timestamp without time zone AS
+CREATE OR REPLACE FUNCTION getTimeStamp(integer) RETURNS timestamp AS
 $BODY$
 DECLARE
 	input_interval		alias for $1;
@@ -1283,7 +1283,7 @@ $$
 language 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[],  OUT tpoint text, OUT ptime_timestamp timestamp without time zone)
+CREATE OR REPLACE FUNCTION getTrajectoryarrayinfo(tpoint[],  OUT tpoint text, OUT ptime_timestamp timestamp)
   RETURNS SETOF record AS
 $BODY$
 DECLARE
