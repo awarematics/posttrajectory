@@ -552,7 +552,7 @@ DECLARE
 	c_trajectory	alias for $1;
 	start_time	alias for $2;
 	time_interval	alias for $3;
-	end_time	TIMESTAMP with time zone;
+	end_time	TIMESTAMP without time zone;
 	text_interval	text;
 BEGIN
 	text_interval := time_interval || ' seconds';
@@ -1095,7 +1095,7 @@ DECLARE
 	
 	sql			text;
 
-	start_time		TIMESTAMP with time zone;
+	start_time		TIMESTAMP without time zone;
 
 	
 BEGIN	
@@ -1132,7 +1132,7 @@ DECLARE
 	
 	sql			text;
 
-	end_time		TIMESTAMP with time zone;
+	end_time		TIMESTAMP without time zone;
 
 	
 BEGIN	
@@ -1163,9 +1163,9 @@ $$
 DECLARE
 	input_interval		alias for $1;
 
-	base_time		TIMESTAMP with time zone;
+	base_time		TIMESTAMP without time zone;
 
-	data_time		TIMESTAMP with time zone;
+	data_time		TIMESTAMP without time zone;
 
 	text_interval		text;
 	
