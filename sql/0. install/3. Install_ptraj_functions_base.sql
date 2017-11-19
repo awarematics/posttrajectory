@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION tj_AddTrajectoryColumn(character varying, character v
 	integer, character varying, integer) RETURNS text;
 CREATE OR REPLACE FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, 
 	integer, character varying, integer, integer) RETURNS text;
-CREATE OR REPLACE FUNCTION tpoint(geometry, timestamp) RETURNS tpoint;
+CREATE OR REPLACE FUNCTION tj_tpoint(geometry, timestamp) RETURNS tpoint;
 CREATE OR REPLACE FUNCTION tj_append(trajectory, geometry, timestamp) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint[]) RETURNS trajectory;
 CREATE OR REPLACE FUNCTION tj_append(trajectory, tpoint) RETURNS trajectory;
@@ -179,8 +179,8 @@ END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE STRICT
   COST 100;
-ALTER FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) OWNER TO postgres;
-COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) IS 
+ALTER FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) OWNER TO postgres;
+COMMENT ON FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) IS 
 					'args: schema_name, table_name, column_name, srid, type, dimentrion';
 
 
@@ -371,12 +371,12 @@ $BODY$
   LANGUAGE 'plpgsql' VOLATILE STRICT
   COST 100;
   
-ALTER FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) OWNER TO postgres;
-COMMENT ON FUNCTION AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) IS 
+ALTER FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) OWNER TO postgres;
+COMMENT ON FUNCTION tj_AddTrajectoryColumn(character varying, character varying, character varying, integer, character varying, integer) IS 
 					'args: schema_name, table_name, column_name, srid, type, dimentrion';
                     
 
-CREATE OR REPLACE FUNCTION tpoint(geometry, timestamp) RETURNS tpoint AS
+CREATE OR REPLACE FUNCTION tj_tpoint(geometry, timestamp) RETURNS tpoint AS
 $$
 DECLARE
 	time_point	alias for $1;
@@ -401,7 +401,7 @@ DECLARE
 	inpuut_geometry		alias for $2;
 	input_time		alias for $3;
 BEGIN
-	execute 'select TJ_append( $1, tpoint( $2, $3 ) )'
+	execute 'select TJ_append( $1, tj_tpoint( $2, $3 ) )'
 	using inpuut_trajectory, inpuut_geometry, input_time;
 END
 $$
@@ -697,7 +697,7 @@ BEGIN
 	RETURN c_trajectory;
 END
 $$
-LANGUAGE 'plpgsql' 
+LANGUAGE 'plpgsql';
 
 
 CREATE OR REPLACE FUNCTION tj_slice(trajectory, timestamp, timestamp) RETURNS tpoint[] AS
@@ -1515,7 +1515,7 @@ $$
 LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION TJ_CALCULATETPOINT(tpoint, tpoint, tpoint) RETURN tpoint AS
+CREATE OR REPLACE FUNCTION TJ_CALCULATETPOINT(tpoint, tpoint, tpoint) RETURNS tpoint AS
 $$
 DECLARE
 	tpoint1					alias for $1;
