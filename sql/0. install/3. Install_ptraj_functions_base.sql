@@ -1822,3 +1822,365 @@ BEGIN
 END
 $$
 LANGUAGE 'plpgsql';
+
+
+-- FUNCTION: public.tj_slice(tpoint[], timestamp without time zone, timestamp without time zone, integer)
+
+-- DROP FUNCTION public.tj_slice(tpoint[], timestamp without time zone, timestamp without time zone, integer);
+
+CREATE OR REPLACE FUNCTION public.tj_slice(
+	tpoint[],
+	timestamp without time zone,
+	timestamp without time zone,
+	integer)
+    RETURNS tpoint[]
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    ROWS 0
+AS $BODY$
+
+DECLARE
+	tpoints						alias for $1;
+    start_time					alias for $2;
+    end_time					alias for $3;
+	array_size					alias for $4;
+    i							integer;
+    j							integer;
+    
+    start_index					integer;
+    end_index					integer;
+    start_tpoint				tpoint;
+    end_tpoint					tpoint;
+    
+    resultvalue					tpoint[];
+    sql							text;
+BEGIN
+	if tpoints[1].ts > start_time or tpoints[array_size].ts < end_time then
+    	return null;
+	end if;
+	-- find to start point
+	i := 1;
+	while i < array_size loop
+    	if tpoints[i].ts = start_time then
+            start_tpoint := tpoints[i];
+            i := i+1;
+            exit when i > 0;
+		elsif tpoints[i].ts < start_time and tpoints[i+1].ts > start_time then
+            start_tpoint := tj_gettpoint(tpoints[i], tpoints[i+1], start_time);
+            i := i+1;
+            exit when i > 0;
+		elsif tpoints[array_size].ts = start_time then
+        	start_tpoint := tpoints[array_size];
+            exit when i > 0;
+		end if;
+        i := i+1;
+	end loop;
+	resultvalue := array_append(resultvalue, start_tpoint);
+    
+    -- fild to last point
+    j := array_size;
+    while j > 1 loop
+    	if tpoints[j].ts = end_time then
+            end_tpoint = tpoints[j];
+            j := j-1;
+            exit when j <= array_size;
+		elsif tpoints[j].ts > end_time and tpoints[j-1].ts < end_time then
+        	end_tpoint := tj_gettpoint(tpoints[j-1], tpoints[j], end_time);
+            j := j-1;
+            exit when j <= array_size;
+		elsif tpoints[1].ts = end_time then
+        	end_tpoint := tpoint[1];
+            exit when j <= array_size;
+		end if;
+        j := j-1;
+    end loop;
+    
+    if i < array_size and j > 0 and i < j then
+    	resultvalue := array_cat(resultvalue, tpoints[i:j]);
+	end if;
+    if start_tpoint.ts != end_tpoint.ts then
+    	resultvalue := array_append(resultvalue, end_tpoint);
+	end if;
+    
+    return resultvalue;
+END
+
+$BODY$;
+
+ALTER FUNCTION public.tj_slice(tpoint[], timestamp without time zone, timestamp without time zone, integer)
+    OWNER TO postgres;
+
+
+-- FUNCTION: public.tj_gettpoint(tpoint, tpoint, timestamp without time zone)
+
+-- DROP FUNCTION public.tj_gettpoint(tpoint, tpoint, timestamp without time zone);
+
+CREATE OR REPLACE FUNCTION public.tj_gettpoint(
+	tpoint,
+	tpoint,
+	timestamp without time zone)
+    RETURNS tpoint
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    ROWS 0
+AS $BODY$
+
+DECLARE
+	first_tpoint		alias for $1;
+	second_tpoint		alias for $2;
+	compare_time		alias for $3;
+    
+    first_time			double precision;
+    second_time			double precision;
+    base_time			double precision;
+    time_difference		double precision;
+    base_to_first_diff	double precision;
+    
+    first_point			geometry;
+    second_point		geometry;
+   
+   	first_x				float;
+    first_y				float;
+    
+    second_x			float;
+    second_y			float;
+    
+    new_point_x			float;
+    new_point_y			float;
+    
+    new_tpoint			tpoint;
+	
+    newpoint			text;
+    sql					text;
+BEGIN
+
+	sql := 'SELECT EXTRACT(EPOCH FROM $1)';
+    execute sql into first_time using first_tpoint.ts;
+        
+    execute sql into second_time using second_tpoint.ts;
+   
+    execute sql into base_time using compare_time;
+    
+    time_difference := second_time - first_time;
+    
+    base_to_first_diff := base_time - first_time;
+
+	first_point := first_tpoint.pnt;
+    second_point := second_tpoint.pnt;
+
+	sql := 'select st_x(st_centroid($1))';
+    execute sql into first_x using first_point;
+    
+    sql := 'select st_y(st_centroid($1))';
+    execute sql into first_y using first_point;
+    
+    sql := 'select st_x(st_centroid($1))';
+    execute sql into second_x using second_point;
+    
+    sql := 'select st_y(st_centroid($1))';
+    execute sql into second_y using second_point;
+    
+	new_point_x := first_x + ( ( second_x-first_x ) / time_difference * base_to_first_diff );
+    new_point_y := first_y + ( ( second_y-first_y ) / time_difference * base_to_first_diff );
+
+	sql := 'select st_point( $1, $2 )';
+    execute sql into new_tpoint.pnt using new_point_x, new_point_y;
+    
+	sql := 'select st_asewkt($1)';
+    execute sql into newpoint using new_tpoint.pnt;
+    new_tpoint.ts := compare_time;
+
+	RETURN new_tpoint;
+END
+
+$BODY$;
+
+ALTER FUNCTION public.tj_gettpoint(tpoint, tpoint, timestamp without time zone)
+    OWNER TO postgres;
+
+-- FUNCTION: public.tj_maxtimestamp(timestamp without time zone, timestamp without time zone)
+
+-- DROP FUNCTION public.tj_maxtimestamp(timestamp without time zone, timestamp without time zone);
+
+CREATE OR REPLACE FUNCTION public.tj_maxtimestamp(
+	timestamp without time zone,
+	timestamp without time zone)
+    RETURNS timestamp without time zone
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    ROWS 0
+AS $BODY$
+
+DECLARE
+	timestamp1				alias for $1;
+    timestamp2				alias for $2;
+
+BEGIN
+	if timestamp1 > timestamp2 then
+    	return timestamp1;
+	else
+    	return timestamp2;
+	end if;
+END
+
+$BODY$;
+
+ALTER FUNCTION public.tj_maxtimestamp(timestamp without time zone, timestamp without time zone)
+    OWNER TO postgres;
+
+
+-- FUNCTION: public.tj_mintimestamp(timestamp without time zone, timestamp without time zone)
+
+-- DROP FUNCTION public.tj_mintimestamp(timestamp without time zone, timestamp without time zone);
+
+CREATE OR REPLACE FUNCTION public.tj_mintimestamp(
+	timestamp without time zone,
+	timestamp without time zone)
+    RETURNS timestamp without time zone
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    ROWS 0
+AS $BODY$
+
+DECLARE
+	timestamp1				alias for $1;
+    timestamp2				alias for $2;
+
+BEGIN
+	if timestamp1 < timestamp2 then
+    	return timestamp1;
+	else
+    	return timestamp2;
+	end if;
+END
+
+$BODY$;
+
+ALTER FUNCTION public.tj_mintimestamp(timestamp without time zone, timestamp without time zone)
+    OWNER TO postgres;
+
+
+-- FUNCTION: public.tj_mdistance(trajectory, trajectory)
+
+-- DROP FUNCTION public.tj_mdistance(trajectory, trajectory);
+
+CREATE OR REPLACE FUNCTION public.tj_mdistance(
+	trajectory,
+	trajectory)
+    RETURNS mdouble[]
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    ROWS 0
+AS $BODY$
+
+DECLARE
+	first_trajectory				alias for $1;
+    second_trajectory				alias for $2;
+    
+	first_trajectory_segtable_name		char(200);
+    second_trajectory_segtable_name		char(200);
+    
+    data							RECORD;
+    
+	temp_tpseg1						tpoint[];
+    temp_tpseg2						tpoint[];
+    temp1_count						integer;
+    temp2_count						integer;
+	temp_distance					double precision;
+	sql_1							text;
+    sql_2							text;
+    
+    start_time						timestamp;
+    end_time						timestamp;
+    
+	tp_trajectory1					tpoint[];
+    tp_trajectory2					tpoint[];
+    traj_prefix						char(50);
+	i								integer;
+    j								integer;
+	result_value					mdouble[];
+    temp_mdouble					mdouble;
+    
+    temp_tpoint						tpoint;
+    
+    temp_count1						integer;
+    temp_count2						integer;
+	
+BEGIN
+	traj_prefix := 'mpseq_' ;
+		
+	first_trajectory_segtable_name := traj_prefix || first_trajectory.segtableoid;
+    second_trajectory_segtable_name := traj_prefix || second_trajectory.segtableoid;
+
+	sql_1 := 'select * from ' || quote_ident(first_trajectory_segtable_name) || ' where mpid = ' || first_trajectory.moid || 
+		' order by start_time';
+        
+	sql_2 := 'select * from ' || quote_ident(second_trajectory_segtable_name) || ' where mpid = ' || second_trajectory.moid || 
+		' order by start_time';
+        
+	FOR data in EXECUTE sql_1 LOOP
+    	execute 'select array_cat($1, $2)' into temp_tpseg1 using temp_tpseg1, data.tpseg;
+	end loop;
+    
+    for data in execute sql_2 loop
+    	execute 'select array_cat($1, $2)' into temp_tpseg2 using temp_tpseg2, data.tpseg;
+	end loop;
+    
+    temp1_count:= array_length(temp_tpseg1, 1);
+    temp2_count:= array_length(temp_tpseg2, 1);
+    
+    start_time := tj_maxtimestamp(temp_tpseg1[1].ts, temp_tpseg2[1].ts);
+    end_time := tj_mintimestamp(temp_tpseg1[temp1_count].ts, temp_tpseg2[temp2_count].ts);
+    
+    tp_trajectory1 := tj_slice(temp_tpseg1, start_time, end_time, temp1_count);
+    tp_trajectory2 := tj_slice(temp_tpseg2, start_time, end_time, temp1_count);
+    
+    i := 1;
+    j := 1;
+    
+    temp1_count := array_length(tp_trajectory1, 1);
+    temp2_count := array_length(tp_trajectory2, 1);
+    raise notice 'temp1_counnt %', temp1_count;
+    raise notice 'temp2_counnt %', temp2_count;
+    while i <= temp1_count and j <= temp2_count loop
+    	if tp_trajectory1[i].ts = tp_trajectory2[j].ts then
+    		temp_distance := st_distance(tp_trajectory1[i].pnt, tp_trajectory2[j].pnt);
+            temp_tpoint.ts = tp_trajectory1[i].ts;
+            temp_tpoint.pnt = tp_trajectory1[i].pnt;
+            i := i+1;
+            j := j+1;
+		elsif tp_trajectory1[i].ts > tp_trajectory2[j-1].ts and tp_trajectory1[i].ts < tp_trajectory2[j].ts then
+        	temp_tpoint := tj_gettpoint(tp_trajectory2[j-1], tp_trajectory2[j], tp_trajectory1[i].ts);
+            temp_distance := st_distance(tp_trajectory1[i].pnt, temp_tpoint.pnt);
+            i := i+1;
+		elseif tp_trajectory1[i-1].ts < tp_trajectory2[j].ts and tp_trajectory1[i].ts > tp_trajectory2[j].ts then
+        	temp_tpoint := tj_gettpoint(tp_trajectory1[i-1], tp_trajectory1[i], tp_trajectory2[j].ts);
+            temp_distance := st_distance(temp_tpoint.pnt, tp_trajectory2[j].pnt);
+            j := j+1;
+		end if;
+        raise notice 'temp_moduble.ts %', temp_mdouble.ts;
+        raise notice 'temp_moduble.distance %', temp_mdouble.distance;
+        temp_mdouble.ts := temp_tpoint.ts;
+		temp_mdouble.distance := temp_distance;
+        result_value := array_append(result_value, temp_mdouble);
+	end loop;
+    
+    return result_value;
+END
+
+$BODY$;
+
+ALTER FUNCTION public.tj_mdistance(trajectory, trajectory)
+    OWNER TO postgres;
+
+
