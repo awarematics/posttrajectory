@@ -18,3 +18,18 @@ CREATE TABLE trajectory_columns
 WITH (
   OIDS=TRUE
 );
+
+-- segment table
+CREATE TYPE segTableType
+(
+	mpid		integer,
+	segid		integer,
+	next_segid	integer,
+	before_segid	integer,
+	mpcount		integer,
+	rect		box2d,
+	start_time	timestamp,
+	end_time	timestamp,
+	tpseg		tpoint[]
+);
+
